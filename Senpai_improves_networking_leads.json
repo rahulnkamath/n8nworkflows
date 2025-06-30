@@ -1,0 +1,2707 @@
+{
+  "name": "Senpai improves networking leads",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://linkedin-data-scraper-api1.p.rapidapi.com/posts/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "keyword",
+              "value": "={{ $json.keywords }}"
+            },
+            {
+              "name": "page_number",
+              "value": "={{ $json.page }}"
+            },
+            {
+              "name": "sort_type",
+              "value": "date_posted"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "linkedin-data-scraper-api1.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1880,
+        20
+      ],
+      "id": "aa168104-3aa4-4784-a2fd-7880227916a5",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "db86061c-f5b2-438c-befd-a2849bbb8ac5",
+              "name": "keywords",
+              "value": "sports analytics AI, sports tech automations",
+              "type": "string"
+            },
+            {
+              "id": "c7614b52-263d-4f79-9175-c25454138b50",
+              "name": "page",
+              "value": 2,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2320,
+        20
+      ],
+      "id": "3170f2b7-fb1b-412b-aa4a-2edb62610452",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input directly\nconst items = $input.all();\nconst result = [];\n\n// Debug info\nconst debug = {\n  inputType: typeof items,\n  inputLength: items ? items.length : 0,\n  firstItem: items && items.length > 0 ? JSON.stringify(items[0]) : 'none'\n};\n\n// Try to process input\ntry {\n  if (items && items.length > 0) {\n    const item = items[0];\n    \n    if (item && item.json && item.json.keywords) {\n      // Split keywords by comma\n      const keywords = item.json.keywords.split(',').map(k => k.trim());\n      const pageCount = item.json.page || 1;\n      \n      // Generate combinations\n      for (const keyword of keywords) {\n        for (let page = 1; page <= pageCount; page++) {\n          result.push({\n            keywords: keyword,\n            page: page\n          });\n        }\n      }\n    }\n  }\n  \n  debug.result = result;\n  return result.length > 0 ? result : debug;\n} catch (error) {\n  debug.error = error.message;\n  return debug;\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2100,
+        20
+      ],
+      "id": "0a174a70-b1e4-4907-ad45-bf5ac74fb973",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const filteredPosts = [];\n\nfor (const item of $input.all()) {\n  const posts = item.json?.data?.items || [];\n  \n  for (const post of posts) {\n    if (post.reposted) continue;\n    \n    const insights = post.socialActivityCountsInsight || {};\n    const totalReactions = insights.totalReactionCount || 0;\n    const numComments = insights.numComments || 0;\n    const textLength = (post.text || '').length;\n    \n    if (totalReactions > 30 && numComments > 10 && textLength > 350) {\n      const author = post.author || {};\n      \n      filteredPosts.push({\n        urn: post.urn,\n        url: post.url,\n        text: post.text,\n        postedDate: post.postedDate,\n        postedDateTimestamp: post.postedDateTimestamp,\n        fullName: author.fullName,\n        username: author.username,\n        headline: author.headline,\n        numComments: insights.numComments,\n        totalReactionCount: insights.totalReactionCount\n      });\n    }\n  }\n}\n\nreturn filteredPosts;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1700,
+        20
+      ],
+      "id": "da9dd205-30ee-4a1a-835d-0490cb1c6c72",
+      "name": "Code1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Linkedin post description:  {{ $json.text }}\nFull name: {{ $json.fullName }}\nUser's job description header: {{ $json.headline }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are crafting engaging LinkedIn comments as someone interested in content creation and design tools.\n\nWhen given a post about content creation, design, or creative automation:\n\n1. Analyze the post content\n2. Create a brief, conversational comment that:\n   - Shows genuine interest in their specific content creation tool/feature\n   - Mentions somethign along the lines of I'm also exploring tools for sports analytics and AI in a natural tone\n   - If they mention early access/beta/new features, express enthusiasm about trying it\n   - Ask ONE specific question about their tool/feature\n   - Uses a warm, casual tone like you're talking to a fellow creator\n   - Is MAXIMUM 200 characters\n\nReturn your response in this JSON format only:\n{\n\"title\": \"40 character title for the post\" \n\"summary\": \"Brief 2-3 sentence summary of what the post is about\",\n  \"commentSuggestion\": \"Your suggested comment that follows all the guidelines above\"\n}\n\nAvoid:\n- Generic praise\n- Technical jargon overload\n- Multiple questions\n- Sounding promotional\n\nWrite as a fellow creative enthusiast eager to learn about their specific tool.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -1480,
+        320
+      ],
+      "id": "1f9a7e4f-d1d9-43bd-9874-6b59ea3c7617",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1500,
+        540
+      ],
+      "id": "a53aa30a-f342-4d93-a44f-4a0413bf3ba8",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "FQP5N3hJ3oAH06vd",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4c092457-9a61-4ce5-9852-6cbb4d00b0a0",
+              "name": "urn",
+              "value": "={{ $('Code1').item.json.urn }}",
+              "type": "string"
+            },
+            {
+              "id": "f433d905-bbc0-4e51-b08e-01decb737806",
+              "name": "url",
+              "value": "={{ $('Code1').item.json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "57ef4e5c-46fe-4baf-a1c8-df813b8f25d4",
+              "name": "text",
+              "value": "={{ $('Code1').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "f225c465-ee04-410b-923a-93853ab8bffa",
+              "name": "postDate",
+              "value": "={{ $('Code1').item.json.postedDate }}",
+              "type": "string"
+            },
+            {
+              "id": "3279e1ad-a483-4393-af64-e5ac89318df9",
+              "name": "postedDateTimestamp",
+              "value": "={{ $('Code1').item.json.postedDateTimestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "f7a509b6-eb38-40d0-8372-65368c2bd2bc",
+              "name": "full name",
+              "value": "={{ $('Code1').item.json.fullName }}",
+              "type": "string"
+            },
+            {
+              "id": "483c97a2-ed27-47ac-83d4-ec9b65ce3aa0",
+              "name": "jobDescription",
+              "value": "={{ $('Code1').item.json.headline }}",
+              "type": "string"
+            },
+            {
+              "id": "b56a8d0c-b1aa-4356-8886-e08b882b22b2",
+              "name": "numComments",
+              "value": "={{ $('Code1').item.json.numComments }}",
+              "type": "number"
+            },
+            {
+              "id": "99574712-00c4-4c2c-a653-bd08781156b5",
+              "name": "totalReactionCount",
+              "value": "totalReactionCount",
+              "type": "string"
+            },
+            {
+              "id": "69736ad7-ecf5-4c65-92a4-67d8bf8ad97b",
+              "name": "commentToPost",
+              "value": "={{ $json.output.commentSuggestion }}",
+              "type": "string"
+            },
+            {
+              "id": "8e99e406-1a36-493d-a356-9e1a1dc65a51",
+              "name": "summary",
+              "value": "={{ $json.output.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "b019204f-bbd6-4830-90a6-1751a3b4a890",
+              "name": "postTitle",
+              "value": "={{ $json.output.title }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -880,
+        520
+      ],
+      "id": "59778493-9f2a-4bb3-979d-f5f0a22b1160",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Extract title from input (assumes it's present in the first item)\nconst title = items[0].json.title || \"LinkedIn Sports Engagement Summary\";\n\nconst emailSections = items.map(item => {\n  const data = item.json;\n\n  return `\n    <div style=\"margin-bottom: 24px; padding: 12px; border-bottom: 1px solid #ddd;\">\n      <h3 style=\"margin: 0 0 8px 0;\"><strong>${data.postTitle || \"Post\"}</strong></h3>\n      <p>🧑‍🎨 <i>${data[\"full name\"] || data.fullName || \"Author\"}</i></p>\n      <p><strong>📝 Summary:</strong><br>${data.summary}</p>\n      <p><strong>💬 Suggested Comment:</strong><br>${data.commentSuggestion || data.commentToPost}</p>\n      <p><a href=\"${data.url}\" target=\"_blank\">🔗 View Post</a></p>\n    </div>\n  `;\n});\n\nconst htmlBody = `\n  <html>\n    <head>\n      <style>\n        body {\n          font-family: Arial, sans-serif;\n          color: #333;\n        }\n      </style>\n    </head>\n    <body>\n      <h2 style=\"color: #222;\"><strong>${title}</strong></h2>\n      ${emailSections.join(\"\\n\")}\n    </body>\n  </html>\n`;\n\nreturn [\n  {\n    json: {\n      subject: `🔥 ${title}`,\n      body: htmlBody,\n      bodyFormat: \"html\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -660,
+        520
+      ],
+      "id": "6ddb9307-74b6-4d18-b67b-9b0e7ccac9c9",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"title\": \"30 character title for the post\",\n  \"summary\": \"Summary of the post\",\n  \"commentSuggestion\": \"Suggestion for the comment\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1180,
+        740
+      ],
+      "id": "aa5efb3e-40c7-44d7-a50a-6a4ed13df459",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {
+          "prompt": "Instructions:\n--------------\n{instructions}\n--------------\nCompletion:\n--------------\n{completion}\n--------------\n\nAbove, the Completion did not satisfy the constraints given in the Instructions.\nError:\n--------------\n{error}\n--------------\n\nPlease try again. Please only respond with an answer that satisfies the constraints laid out in the Instructions:"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        -1380,
+        540
+      ],
+      "id": "00e77815-be1c-442d-9245-853980478279",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1360,
+        740
+      ],
+      "id": "bcf9038c-a8f4-4ad1-b140-6af3749741dd",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "FQP5N3hJ3oAH06vd",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "urn",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -1480,
+        20
+      ],
+      "id": "ceffcce6-7bb9-4765-ab1e-d5523a50bb0e",
+      "name": "Remove Duplicates within worflow"
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.urn }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        20
+      ],
+      "id": "536cb3ef-b648-47bb-aa02-b30b0fd70fcc",
+      "name": "Remove Duplicates from previous executions"
+    },
+    {
+      "parameters": {
+        "sendTo": "rahulnkamath@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -440,
+        520
+      ],
+      "id": "c1b432ab-e247-453b-a04a-b34088dcd740",
+      "name": "Gmail",
+      "webhookId": "947f12fb-8092-4e7f-8a32-79aa5d30af1e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "abdOSGt6FMewBUPV",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 300,
+        "width": 1580
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2620,
+        -60
+      ],
+      "id": "1ac7b027-8f14-46e5-85cc-cbc904d20f0c",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 640,
+        "width": 560,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1600,
+        280
+      ],
+      "id": "6a3fded2-afc4-478b-a01a-fa06243c3722",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 380,
+        "width": 740,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -980,
+        400
+      ],
+      "id": "d6ad81f4-c81b-4dd3-8f14-20d7aec63082",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2500,
+        20
+      ],
+      "id": "f14551a1-b59d-494b-8429-aaac2f261505",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {
+    "Edit Fields": [
+      {
+        "json": {
+          "keywords": "sports analytics AI",
+          "page": 3
+        }
+      }
+    ],
+    "HTTP Request": [
+      {
+        "json": {
+          "success": true,
+          "message": "",
+          "data": {
+            "total": 476,
+            "count": 10,
+            "items": [
+              {
+                "urn": "7339319549034450945",
+                "url": "https://www.linkedin.com/posts/santhosh-kumar570_footballanalytics-datavisualization-tableau-activity-7339319549034450945-RjFe",
+                "template": "",
+                "text": "This is such a cool project! Really smart way to turn football stats into visual insights. Give it a look if you're into analytics or the beautiful game.\n ⚽📊 #FootballAnalytics #Tableau #Python",
+                "postedAt": "2w",
+                "postedDate": "2025-06-13 15:55:38.453 +0000 UTC",
+                "postedDateTimestamp": 1749830138453,
+                "reposted": true,
+                "resharedPost": {
+                  "isBrandPartnership": false,
+                  "text": "Excited to share a project I’ve been working on:\n\n “Evaluating Football Team Performance Using Advanced Analytics” – a Tableau dashboard that analyzes team performance across the top 5 European Leagues using data-driven insights and interactive visualizations.\n\n🔗 Check it out here:\nVisualization: https://lnkd.in/gUfizKMz\nCode: https://lnkd.in/geBMtaNs\n\n🧠 Key Features:\nTeam Selector Panel – Click any team to update the full dashboard dynamically.\nForm Tracker – Last 5 match results displayed with intuitive color codes.\nTop Scorer & Assister – See who’s delivering on the pitch.\nFormation Visualizer – Most common formation shown as a pitch layout.\nGoals Scored vs. Goals Conceded – Scatter plot comparing team efficiency.\nLeague Switcher – Instantly compare across Premier League, La Liga, Serie A, Bundesliga, and Ligue 1.\n\n🛠️ Built With:\nTableau – for full data visualization and interactivity\nPython – for scraping data from FBref (StatsBomb/Opta-powered)\n\n📌 Why This Project?\nThe goal was to help scouts, analysts, and fans quickly spot tactical trends, performance gaps, and team identity through clean and interactive visuals. It’s all about turning raw stats into fast, actionable insight.\n\n🚀 Next Steps:\nAdd advanced metrics like xG, PPDA\nEnable cross-league comparisons\nFilter performance by time or matchweeks\nBig thanks to FBref.com for the stats!\n\nWould love your feedback!\n\n#FootballAnalytics #DataVisualization #Tableau #SoccerStats #SportsAnalytics #FBref #DataScience #Python #PremierLeague #LaLiga #SerieA #Bundesliga #Ligue1",
+                  "author": {
+                    "firstName": "Meshach",
+                    "lastName": "Samuel",
+                    "username": "meshach-adrian-samuel",
+                    "url": "https://www.linkedin.com/in/meshach-adrian-samuel"
+                  },
+                  "company": {},
+                  "document": {},
+                  "celebration": {},
+                  "poll": {},
+                  "contentType": "",
+                  "article": {
+                    "newsletter": {}
+                  },
+                  "entity": {}
+                },
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Santhosh K",
+                  "headline": "Sr. Data Analyst / Power BI Reporting Analyst @ Aetna | MS in Information Systems",
+                  "username": "santhosh-kumar570",
+                  "url": "https://www.linkedin.com/in/santhosh-kumar570",
+                  "profilePictures": [
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHkgObXy8k3bQ/profile-framedphoto-shrink_200_200/B56ZXI173lGsAY-/0/1742831337323?e=1751814000&v=beta&t=0F_OARpT9CEEEqq2we3ehI27wSyhEuVJ3tPEyFA5P3Q"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHkgObXy8k3bQ/profile-framedphoto-shrink_100_100/B56ZXI173lGsAk-/0/1742831337323?e=1751814000&v=beta&t=n2OW0kShtslU1GcJ9iTP1f0SqV7iu9gbxLPPkO7Eyks"
+                    },
+                    {
+                      "width": 728,
+                      "height": 728,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHkgObXy8k3bQ/profile-framedphoto-shrink_800_800/B56ZXI173lGsAg-/0/1742831337323?e=1751814000&v=beta&t=THNQCWkLTm8e3BSdXkW7qlrBC81DH2GUYLphTmgJhv0"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHkgObXy8k3bQ/profile-framedphoto-shrink_400_400/B56ZXI173lGsAc-/0/1742831337263?e=1751814000&v=beta&t=c8RDUo8UBozyO5gdBbVib92EIymle-awX3MEkY0of5M"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 6,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 6
+                }
+              },
+              {
+                "urn": "7344015729907720193",
+                "url": "https://www.linkedin.com/posts/muhammad-shoaib-ahmad-40800b2a8_ever-wondered-if-you-could-get-professional-activity-7344015729907720193-IKVy",
+                "template": "",
+                "text": "Ever wondered if you could get professional cricket analytics with just a laptop? 🤔 I did, so I built it! Presenting my Cricket Ball Tracking System! 🏏💻 This project uses Python and AI to automatically analyze any cricket delivery video. Watch it in action! 👇 \n1️⃣ Detects the ball with a YOLOv5 model 🎯 \n2️⃣ Tracks the 3D flight path using a Kalman Filter 🛤️ \n3️⃣ Analyzes the delivery length (Full, Good, or Short!) \n📊 The goal? To make data-driven coaching accessible for everyone, from local clubs to aspiring pros. This is the power of open-source sports tech! 🚀 I've made the entire project open-source. Check out the code and run it yourself! 👉 GitHub: https://lnkd.in/dqEhXsST What do you think? Let me know in the comments!",
+                "postedAt": "2d",
+                "postedDate": "2025-06-26 14:56:35.224 +0000 UTC",
+                "postedDateTimestamp": 1750949795224,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Muhammad Shoaib Ahmad",
+                  "headline": "🎓 Final-Year Data Science Student @PUCIT | AI & GenAI Developer | 🧠 LLM, RAG & Agentic AI Enthusiast | Python & Java Developer | 🔐 Cybersecurity Learner | 📊 Data Analyst | Building Secure Intelligent Systems",
+                  "username": "muhammad-shoaib-ahmad-40800b2a8",
+                  "url": "https://www.linkedin.com/in/muhammad-shoaib-ahmad-40800b2a8",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQHgaOsnCXfseA/profile-displayphoto-scale_100_100/B4DZetV8veGkAc-/0/1750959903413?e=1756944000&v=beta&t=SwkGynyBZhA8HTSLGIKUTD96V3OXaO34zpDpSYJOD-c"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQHgaOsnCXfseA/profile-displayphoto-scale_200_200/B4DZetV8veGkAY-/0/1750959903413?e=1756944000&v=beta&t=0jhKlS25_nVhghLaschr4wert6lAuhVDLp_3hqecmH4"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQHgaOsnCXfseA/profile-displayphoto-crop_800_800/B4DZetV8veGkAI-/0/1750959903321?e=1756944000&v=beta&t=MCdEM7iwgGVldpMzw_AIDVBaz8K_LHTkO3iwAAUeA0o"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQHgaOsnCXfseA/profile-displayphoto-scale_400_400/B4DZetV8veGkAg-/0/1750959903413?e=1756944000&v=beta&t=xL1bHSWkgPOGptW_d0N8UmtfjcqWSXcG081Nptf1q6Q"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 2,
+                  "likeCount": 8,
+                  "appreciationCount": 0,
+                  "empathyCount": 2,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 10
+                }
+              },
+              {
+                "urn": "7344031732783845377",
+                "url": "https://www.linkedin.com/posts/naterusch_building-intelligent-ai-how-womens-basketball-activity-7344031732783845377-nd-l",
+                "template": "",
+                "text": "Building intelligent AI: How women's basketball became the perfect test case for creating smart data systems.",
+                "postedAt": "2d",
+                "postedDate": "2025-06-26 16:00:10.607 +0000 UTC",
+                "postedDateTimestamp": 1750953610607,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {
+                  "title": "Building AI That Bridges Data Gaps: A Sports Analytics Proof of Concept",
+                  "subtitle": "Nate Rusch",
+                  "link": "https://www.linkedin.com/pulse/building-ai-bridges-data-gaps-sports-analytics-proof-concept-rusch-wiu3c?trackingId=ZtqCM7NzRIig7FrvV3tpBw%3D%3D"
+                },
+                "object": {},
+                "author": {
+                  "fullName": "Nate Rusch",
+                  "headline": "Technology Consultant | AI Strategy, Digital Transformation, Nonprofit Leadership",
+                  "username": "naterusch",
+                  "url": "https://www.linkedin.com/in/naterusch",
+                  "profilePictures": [
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQGeY6rdSy77JA/profile-framedphoto-shrink_400_400/profile-framedphoto-shrink_400_400/0/1734799570562?e=1751814000&v=beta&t=RCQJuMukQZfrvNMWPc55zh0zQ2j1W1mKLYs041KNQ0g"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQGeY6rdSy77JA/profile-framedphoto-shrink_200_200/profile-framedphoto-shrink_200_200/0/1734799570562?e=1751814000&v=beta&t=uFCCK2-oDY-NoRnbz_dPDgt9Mnteg6tqyWa-pie02ZE"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQGeY6rdSy77JA/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1734799570562?e=1751814000&v=beta&t=L16RHdcqvmg4L_vHBNndMGW96NUIN34bTQR58uFPPb0"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQGeY6rdSy77JA/profile-framedphoto-shrink_100_100/profile-framedphoto-shrink_100_100/0/1734799570509?e=1751814000&v=beta&t=KaYO8pz46RqEgquCruwI6b5mWUM47sRNLcMBTuHR7HM"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 4,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 1,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 5
+                }
+              },
+              {
+                "urn": "7343550648497381376",
+                "url": "https://www.linkedin.com/posts/manjunathkrishnan_hiring-analyticsjobs-datascience-activity-7343550648497381376-q5sd",
+                "template": "",
+                "text": "Ready to make a global impact in the world of analytics and AI?\n\nWe at Straive, are not just transforming data—we're redefining how industries use it to drive decision-making, innovation, and competitive edge. \n\nWe are looking for a visionary Analytics leader to join our growing Analytics Consulting team.\n\nWhat you’ll own:\n\n-Lead delivery, account strategy, and client success\n-Scale POCs into enterprise-wide, long-term analytics programs\n-Develop impactful analytics roadmaps and drive CXO-level engagement\n-Shape the future of Retail, E-Commerce & Sports Analytics with cutting-edge Data Science\n-Inspire and lead a world-class team of analytics experts\n\nSaurabh Bharti Sukruth Pillarisetti Sudha Krishnan Harish Vilvamani\n\n #Hiring #AnalyticsJobs #DataScience #AnalyticsConsulting #Leadership #StraiveCareers #RetailAnalytics #SportsAnalytics #ECommerceAnalytics #AI #DigitalTransformation #JoinStraive #ThrivewithStraive",
+                "postedAt": "4d",
+                "postedDate": "2025-06-25 08:08:31.175 +0000 UTC",
+                "postedDateTimestamp": 1750838911175,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {
+                  "title": "Director- Analytics Consulting",
+                  "subtitle": "Job by Straive",
+                  "link": "https://www.linkedin.com/jobs/view/4254304098/?refId=DFqNCNemSqqpC9bgKTLEQw%3D%3D&trackingId=DFqNCNemSqqpC9bgKTLEQw%3D%3D",
+                  "description": "Hyderabad, Telangana, India (On-site)"
+                },
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Manjunath Krishnan",
+                  "headline": "Talent Acquisition @Straive | XLRI Alumni | Leading Data Science & Data Engineering hiring",
+                  "username": "manjunathkrishnan",
+                  "url": "https://www.linkedin.com/in/manjunathkrishnan",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/C4E03AQHEm2MEcilkNw/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1616314095807?e=1756944000&v=beta&t=A-Q495dUOBlSIM2nt3fZG8m5nSC8nxfrlwRKmhoZchw"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/C4E03AQHEm2MEcilkNw/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1616314095807?e=1756944000&v=beta&t=vjPJwK46Pr3gqY496w4ETEC2_bW6i2JTArk4kfsVc_w"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/C4E03AQHEm2MEcilkNw/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1616314095807?e=1756944000&v=beta&t=d1Sw5NGwuXsddwMFqhG35ketvPNYhMCgwCkHeLWyUjw"
+                    },
+                    {
+                      "width": 560,
+                      "height": 560,
+                      "url": "https://media.licdn.com/dms/image/v2/C4E03AQHEm2MEcilkNw/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1616314095807?e=1756944000&v=beta&t=UEIr0GT6ZYiWtTf5bRKnCm4TRiEUwbtl8stNEdvJvZw"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 5,
+                  "likeCount": 65,
+                  "appreciationCount": 1,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 1,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 67
+                }
+              },
+              {
+                "urn": "7343639666509688832",
+                "url": "https://www.linkedin.com/posts/furqansa344_ai-computervision-footballanalytics-activity-7343639666509688832-Kili",
+                "template": "",
+                "text": "What if one video could reveal everything about a football match?\n From who ran the most to who had the ball, it’s now possible, fully automated with AI.\n\n🚀 Excited to share my latest Computer Vision project, a Football Analytics Application that turns raw match footage into actionable insights!\n\nKey Features:\n1. Detects and tracks players + the ball using YOLOv5 and ByteTrack.\n2. Distinguishes team identities.\n3. Marks the player in possession with a triangle.\n4. Calculates total distance covered per player.\n5. Computes individual player speed for sprint and effort analysis.\n6. Visualizes ball control and movement dynamics.\n\nTech Stack:\n• YOLOv5\n• Roboflow Supervision\n• OpenCV\n• Custom utilities in Python\n\nWhether it’s performance analysis, tactical feedback, or broadcast enhancement, this tool aims to bridge the gap between AI and real-world football.\n\nCheck out the demo in the video above!\n\nLet’s connect if you’re building in Sports Analytics, AI for Performance, or just love football + tech!\n\n#AI #ComputerVision #FootballAnalytics #SportsTech #PlayerTracking #YOLOv5 #OpenCV #ByteTrack #Football",
+                "postedAt": "4d",
+                "postedDate": "2025-06-25 14:02:14.723 +0000 UTC",
+                "postedDateTimestamp": 1750860134723,
+                "reposted": false,
+                "video": {
+                  "media": "urn:li:digitalmediaAsset:D4D05AQGf_dzQfI9IUA",
+                  "entityUrn": "urn:li:digitalmediaAsset:D4D05AQGf_dzQfI9IUA",
+                  "duration": 31266,
+                  "thumbnails": [
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D4D05AQGf_dzQfI9IUA/videocover-low/B4DZenZOkQHMB8-/0/1750860129476?e=1751814000&v=beta&t=s_VlFvfL4478ma9QWkN6h5Ir6t6gL0NzmWjXaPgVn8w",
+                      "width": 640,
+                      "height": 360
+                    },
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D4D05AQGf_dzQfI9IUA/videocover-high/B4DZenZOkQHMCA-/0/1750860129706?e=1751814000&v=beta&t=R_YUSisHU98WHtYN4HqdLBDq_TM_WslAS5rmh7dzjFM",
+                      "width": 1280,
+                      "height": 720
+                    }
+                  ],
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQGf_dzQfI9IUA/mp4-720p-30fp-crf28/B4DZenZOkQHMBo-/0/1750860131147?e=1751814000&v=beta&t=fgNqTCV-WlemJFnO40dvhHleV1JXayN7xNTUJbjA8Bk",
+                      "width": 1280,
+                      "height": 720,
+                      "bitRate": 1421356,
+                      "mediaType": "video/mp4"
+                    },
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQGf_dzQfI9IUA/mp4-640p-30fp-crf28/B4DZenZOkQHMBk-/0/1750860131179?e=1751814000&v=beta&t=Iu-qzbg_pLwLk8xxHIrIP-fXv7GwPFMXGTV4biYb1Xo",
+                      "width": 1138,
+                      "height": 640,
+                      "bitRate": 1108933,
+                      "mediaType": "video/mp4"
+                    }
+                  ]
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Sayyed Furqan Hussain",
+                  "headline": "Computer Vision Engineer | Specializing in Deep Learning Techniques | Transforming Industries through AI | Empowering Business with Machine Vision Solutions",
+                  "username": "furqansa344",
+                  "url": "https://www.linkedin.com/in/furqansa344",
+                  "profilePictures": [
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQEGIz5AEk1Fsg/profile-framedphoto-shrink_400_400/profile-framedphoto-shrink_400_400/0/1738310990756?e=1751814000&v=beta&t=_lFixTcICCKrNzC3jLeeRLqMeAze4EiXwKKVi4OnaLY"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQEGIz5AEk1Fsg/profile-framedphoto-shrink_200_200/profile-framedphoto-shrink_200_200/0/1738310990756?e=1751814000&v=beta&t=Qnj8WaBaoih46O2NYefwXapkzXgeTXWXySZwMxHV8Dk"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQEGIz5AEk1Fsg/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1738310990756?e=1751814000&v=beta&t=kyl73wrqfQolizR0VciAfdWLDKMq0Bg9330emeRQ3tc"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQEGIz5AEk1Fsg/profile-framedphoto-shrink_100_100/profile-framedphoto-shrink_100_100/0/1738310990719?e=1751814000&v=beta&t=uOJlWynTrRoy7099GNA-jRxl1NEoGO0OwnComKdpf8Q"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 2,
+                  "likeCount": 11,
+                  "appreciationCount": 0,
+                  "empathyCount": 1,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 12
+                }
+              },
+              {
+                "urn": "7344131925365682178",
+                "url": "https://www.linkedin.com/posts/donald-esset-984752261_computervision-footballanalytics-objectdetection-activity-7344131925365682178-0Rqr",
+                "template": "",
+                "text": "Looking back at some of the personal projects I’ve built in the past — I came across this football video analysis tool I worked on using computer vision and object detection.\nIt’s a lightweight system that can analyze football match footage, make predictions, and visualize important information directly on the video 🎥⚽\n✅ Ball tracking — implemented\n✅ Player detection and tracking — implemented\nThe idea was to create a tool that could help visualize tactical patterns, player movement, and game flow — and there’s still so much more that can be added!\n🔧 Features I’m planning to explore:\nPlayer and ball speed tracking\nPass detection & event recognition\nHeatmaps and movement trails\nIf you’re passionate about sports analytics, AI in football, or CV-based tracking, I’d love for you to check it out or contribute ☺️ !\nLet’s build something cool for the beautiful game\n\nhttps://lnkd.in/d7Cd8nMA\n\n#ComputerVision #FootballAnalytics #ObjectDetection #AIinSports #OpenCV #YOLO #DeepSORT #Python #MachineLearning #SportsTech",
+                "postedAt": "2d",
+                "postedDate": "2025-06-26 22:38:18.38 +0000 UTC",
+                "postedDateTimestamp": 1750977498380,
+                "reposted": false,
+                "video": {
+                  "media": "urn:li:digitalmediaAsset:D4D05AQHwCUCt2hp1ww",
+                  "entityUrn": "urn:li:digitalmediaAsset:D4D05AQHwCUCt2hp1ww",
+                  "duration": 31266,
+                  "thumbnails": [
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D4D05AQHwCUCt2hp1ww/feedshare-thumbnail_720_1280/B4DZeuYaetGgA0-/0/1750977333449?e=1751814000&v=beta&t=IaePqdv-RNMI79S3LGMJh4MzVd_e2TuXN0DY7zTbHPM",
+                      "width": 1280,
+                      "height": 720
+                    }
+                  ],
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQHwCUCt2hp1ww/mp4-720p-30fp-crf28/B4DZeuYaetGgBw-/0/1750977494839?e=1751814000&v=beta&t=0rVEAudPARSXWJVfFLgg7edQGuRjbvXPJHVbLgk4zTU",
+                      "width": 1280,
+                      "height": 720,
+                      "bitRate": 1306408,
+                      "mediaType": "video/mp4"
+                    },
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQHwCUCt2hp1ww/mp4-640p-30fp-crf28/B4DZeuYaetGgBs-/0/1750977495260?e=1751814000&v=beta&t=Lp193FG2WpG0do3hDg_tMVBrFz8dyL9yV5TeZOQ2iB4",
+                      "width": 1138,
+                      "height": 640,
+                      "bitRate": 1002895,
+                      "mediaType": "video/mp4"
+                    }
+                  ]
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Donald Esset",
+                  "headline": "Data Scientist | AI/ML Engineer",
+                  "username": "donald-esset-984752261",
+                  "url": "https://www.linkedin.com/in/donald-esset-984752261",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQGu3C9vQd6vBQ/profile-framedphoto-shrink_100_100/B4DZUE34e4G4Ak-/0/1739543513317?e=1751814000&v=beta&t=_-DDX9kP-ATXZfq113-lnuygX95cmdaqK8XoZMIy85k"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQGu3C9vQd6vBQ/profile-framedphoto-shrink_400_400/B4DZUE34e4G4Ac-/0/1739543513317?e=1751814000&v=beta&t=9LCve8MwqvBUrXRFp5t5lENis7PFfrbJ-th7XJmYKWA"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQGu3C9vQd6vBQ/profile-framedphoto-shrink_200_200/B4DZUE34e4G4AY-/0/1739543513317?e=1751814000&v=beta&t=eNK8vTZ_obIXIY-afa5GgE9PzmYvjVsoa7LXSBWluf0"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQGu3C9vQd6vBQ/profile-framedphoto-shrink_800_800/B4DZUE34e4G4Ag-/0/1739543513370?e=1751814000&v=beta&t=wDshNQpj6tGHX-Zn82pnGgggfL054Wytt_gRvTqBCOw"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 9,
+                  "likeCount": 19,
+                  "appreciationCount": 0,
+                  "empathyCount": 2,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 21
+                }
+              },
+              {
+                "urn": "7343111039212732417",
+                "url": "https://www.linkedin.com/posts/liveashutosh_computervision-yolov8-sportsanalytics-activity-7343111039212732417-5dNI",
+                "template": "",
+                "text": "⚽ I’ve always loved football (or soccer, depending on your timezone), so I thought, why just watch the game when I can analyze it with AI?\n\nWhile the FIFA Club World Cup was underway, I built a system that uses computer vision and machine learning to break down match footage in real time.\nHere’s what it does:\n\n🧠 Detects players, referees, and the ball using YOLOv8; a fast, accurate object detection model that sees everything in a single pass\n\n🏃 Tracks players across frames using BYTETrack; a multi-object tracking algorithm that keeps identities consistent across time\n\n🎯 Adds clean overlays using OpenCV; a powerful library for image and video processing; I replaced boxes with ellipses, triangles, and real-time player IDs\n\nIt also gets smarter:\n\n🟢 Uses KMeans Clustering; an algorithm that groups players by t-shirt color to automatically assign them to teams\n\n📊 Calculates team ball possession; by linking the ball’s position to the nearest player and tracking it over time\n\n📏 Applies Optical Flow; to measure camera movement between frames, keeping tracking accurate\n\n🌍 Uses Perspective Transformation; a technique that maps video coordinates to real-world distances, so I can calculate player speed and meters covered\n🎥 I’ve shared a short demo below, showing real-time tracking, clean visualizations, and player movement.\n\nIf you're into sports analytics, AI in action, or just love football and tech like I do, let’s connect!\n\n#ComputerVision #YOLOv8 #SportsAnalytics #FootballAnalytics #MachineLearning #DeepLearning #OpenCV #AIinSports #SoccerTech #PythonProjects #BYTETrack #OpticalFlow #KMeans",
+                "postedAt": "5d",
+                "postedDate": "2025-06-24 03:01:40.154 +0000 UTC",
+                "postedDateTimestamp": 1750734100154,
+                "reposted": false,
+                "video": {
+                  "media": "urn:li:digitalmediaAsset:D5605AQG7DITUj_fppw",
+                  "entityUrn": "urn:li:digitalmediaAsset:D5605AQG7DITUj_fppw",
+                  "duration": 29933,
+                  "thumbnails": [
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D5605AQG7DITUj_fppw/feedshare-thumbnail_720_1280/B56Zef4fsuHUAw-/0/1750734078302?e=1751814000&v=beta&t=46r65I1mU_NACUVWcqlBBQHC9fPGTsWhCw0GfAxeOy8",
+                      "width": 480,
+                      "height": 720
+                    }
+                  ],
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D5605AQG7DITUj_fppw/mp4-720p-30fp-crf28/B56Zef4fsuHUBk-/0/1750734095447?e=1751814000&v=beta&t=5As8-kLf3oqL57IqrOBGZ6zT63999TT-yp9oOEom-Xc",
+                      "width": 1278,
+                      "height": 720,
+                      "bitRate": 1262414,
+                      "mediaType": "video/mp4"
+                    },
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D5605AQG7DITUj_fppw/mp4-640p-30fp-crf28/B56Zef4fsuHUBg-/0/1750734095221?e=1751814000&v=beta&t=jSm7H-cfYoqFLto_Xm6tpfuzlr2v6zAaV8aODuu2Uqw",
+                      "width": 1136,
+                      "height": 640,
+                      "bitRate": 975538,
+                      "mediaType": "video/mp4"
+                    }
+                  ]
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Ashutosh Das",
+                  "headline": "Health IT Infra Intern @ MiHiN | ML, Data, Software Development | 5+ Years of Industry Experience",
+                  "username": "liveashutosh",
+                  "url": "https://www.linkedin.com/in/liveashutosh",
+                  "profilePictures": [
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQEu2CJYagHPjw/profile-framedphoto-shrink_400_400/profile-framedphoto-shrink_400_400/0/1738169962685?e=1751814000&v=beta&t=bfJiOsjEfRMFYOdfASnX92jzZ3OkL0KLrqrPPMbuCsU"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQEu2CJYagHPjw/profile-framedphoto-shrink_200_200/profile-framedphoto-shrink_200_200/0/1738169962685?e=1751814000&v=beta&t=87NywafGp8ps16SEJVCxNAZCSwiQyXCq0PacO834eCA"
+                    },
+                    {
+                      "width": 640,
+                      "height": 640,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQEu2CJYagHPjw/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1738169962685?e=1751814000&v=beta&t=WXqyHMw5g-w0PT5ruY93GlHsOp9LdZJkv4_5wMd2wno"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQEu2CJYagHPjw/profile-framedphoto-shrink_100_100/profile-framedphoto-shrink_100_100/0/1738169962670?e=1751814000&v=beta&t=CTQlPa-y2V5zziQonYb2NSPTEexhrq5GoKlP6f5h9z4"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 5,
+                  "likeCount": 20,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 7,
+                  "praiseCount": 7,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 34
+                }
+              },
+              {
+                "urn": "7341893362582462466",
+                "url": "https://www.linkedin.com/posts/sports-management-worldwide_databricks-activity-7341893362582462466-I9bS",
+                "template": "",
+                "text": "Ari Kaplan teaches our Sports Analytics and AI and is an absolute legend!",
+                "postedAt": "1w",
+                "postedDate": "2025-06-20 18:23:03.422 +0000 UTC",
+                "postedDateTimestamp": 1750443783422,
+                "reposted": true,
+                "resharedPost": {
+                  "isBrandPartnership": false,
+                  "text": "The Indianapolis Pacers are in the NBA finals - hear how they leverage Databricks for the entire Pacers Sports and Entertainment (Indiana Fever of the WNBA and Caitlin Clark fame, the Indiana Mad Ants, and Pacers Gaming).\n\nThank you for coming on Jared Chavez and #Databricks CMO Rick Schultz for an enlightening conversation!\n\nThey reduced their ML costs 12,000x while speeding up and democratizing their data and AI.\n\nBelow is the first 3 min clip (full video forthcoming). Good luck in game 6 Jared and team!",
+                  "author": {
+                    "firstName": "Ari",
+                    "lastName": "Kaplan",
+                    "username": "arikaplan",
+                    "url": "https://www.linkedin.com/in/arikaplan"
+                  },
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D5605AQHJUsKRAAfK2w/mp4-720p-30fp-crf28/B56ZeASPejH8Bo-/0/1750204075384?e=1751814000&v=beta&t=uYlfUkH6wYrhrmx0vVRM7JUruE63ucty_3xa5ULYvMo",
+                      "poster": "https://media.licdn.com/dms/image/v2/D5605AQHJUsKRAAfK2w/videocover-high/B56ZeASPejH8CA-/0/1750204061527?e=1751814000&v=beta&t=D3UNBp2ak505K9tU3pR49DS5Jt5Es1pPpLZkWYUwig4",
+                      "duration": 193700,
+                      "thumbnails": null,
+                      "video": null
+                    }
+                  ],
+                  "company": {},
+                  "document": {},
+                  "celebration": {},
+                  "poll": {},
+                  "contentType": "",
+                  "article": {
+                    "newsletter": {}
+                  },
+                  "entity": {}
+                },
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Sports Management Worldwide",
+                  "headline": "43,302 followers",
+                  "url": "https://www.linkedin.com/school/sports-management-worldwide/",
+                  "profilePictures": [
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/C4D0BAQHnivk5sxh4QQ/company-logo_200_200/company-logo_200_200/0/1631341853646?e=1756944000&v=beta&t=W0zwUoWe5ueUV9B-aw0bGjc4otNypoRfxTfQ0urxOos"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/C4D0BAQHnivk5sxh4QQ/company-logo_100_100/company-logo_100_100/0/1631341853646?e=1756944000&v=beta&t=Ks6ybulVO7tGN9nRFhHH5HeRyvcO4fXFIh095-XSfPU"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/C4D0BAQHnivk5sxh4QQ/company-logo_400_400/company-logo_400_400/0/1631341853646?e=1756944000&v=beta&t=pPniuhjJGvT-49P3k6l0jKle7RGppOE9phgFxJTiYPk"
+                    }
+                  ],
+                  "type": "company"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 1,
+                  "likeCount": 4,
+                  "appreciationCount": 1,
+                  "empathyCount": 2,
+                  "InterestCount": 0,
+                  "praiseCount": 1,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 8
+                }
+              },
+              {
+                "urn": "7339687559918157825",
+                "url": "https://www.linkedin.com/posts/shah-faisal-67a1a2240_ai-boxing-yolo-activity-7339687559918157825-5XM4",
+                "template": "",
+                "text": "#AI-Powered Rumble Boxing Analytics System Just Dropped! 🥊📊\nThrilled to unveil my latest Computer Vision innovation that’s turning heads in the sports tech world!\nI’ve built a real-time #Boxing Performance Analytics System that fuses Mediapipes Pose Detection with #YOLO Object Detection—all wrapped in a slick, animated #UI.\n What started as a passion project is now a powerful tool for #fighters, #coaches, and #analysts.\n✨ Key Features:\n ✅ Real-time punch detection & classification (#Jab, #Cross, #Hook, #Uppercut)\n ✅ 33-point pose estimation with clean, intuitive visuals\n ✅ Advanced metrics: #Power, #Speed, #Technique, #Energy level tracking\n ✅ Gorgeous #UI: Animated overlays, particle FX, volume bars\n ✅ Smart combo recognition & fatigue simulation\n ✅ Built with MediaPipe for superior pose accuracy\n🛠️ Tech Stack:\n 🔹 #Python + #OpenCV\n 🔹 #MediaPipe (pose tracking)\n 🔹 #YOLO (person detection)\n🎯 This system simulates what you'd expect from high-end motion capture setups—using only a camera. Whether you're boxing solo or coaching a team, it delivers insights into technique, endurance, and strike precision.\n💡 I’m now considering scaling this into a full AI Sports Analytics Platform for martial arts, fitness, and performance coaching.\n📣 Would love your feedback, ideas, or partnerships—especially from fellow devs, trainers, and sports tech innovators!\n#ComputerVision #AI #SportsAnalytics #Python #OpenCV #MediaPipe #YOLO #Boxing #MachineLearning #PoseEstimation #RealTimeAnalytics #SportsTech #FitnessAI #Innovation #AIForGood #DeepLearning #MartialArts #StartupIdeas #VideoAnalysis #TechInnovation #ArtificialIntelligence #Developer #OpenSource #AthletePerformance\nMicrosoft Google Meta Amazon NVIDIA OpenAI Apple Samsung Electronics Samsung Research America (SRA) OceanPark Financial CVAT.AI | Python Software Foundation |IBM | LinkedIn | Tesla | SpaceX Victra - Verizon Authorized Retailer International Institute of SDG's and Public Policy Research  OCAC Training Center| Qualcomm | Palantir Technologies | Bloomberg News | Rise Technical | Lockheed Martin | UK Ministry of Defence |SAIC|Raptive | Caf|Muhammad Rizwan Munawar Ultralytics Danny Wallschlaeger Artur Cortelli Junior  \n \n\nIf you encounter any issues with model development or training, feel free to contact me via WhatsApp or email\n\nEmail: shahfaisal15401@gmail.com\nWhatsApp : +923125094307",
+                "postedAt": "2w",
+                "postedDate": "2025-06-14 16:17:59.085 +0000 UTC",
+                "postedDateTimestamp": 1749917879085,
+                "reposted": false,
+                "video": {
+                  "media": "urn:li:digitalmediaAsset:D4D05AQFOUPeR648giQ",
+                  "entityUrn": "urn:li:digitalmediaAsset:D4D05AQFOUPeR648giQ",
+                  "duration": 44133,
+                  "thumbnails": [
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D4D05AQFOUPeR648giQ/feedshare-thumbnail_720_1280/B4DZdvOj51G8As-/0/1749917779558?e=1751814000&v=beta&t=yMScE6QstShXs74AA3xAlDDnFusFgVIOGrJJ6VgkL34",
+                      "width": 1024,
+                      "height": 590
+                    }
+                  ],
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQFOUPeR648giQ/mp4-720p-30fp-crf28/B4DZdvOj51G8Bg-/0/1749917875987?e=1751814000&v=beta&t=MSp7Ajg4DINaXzmvYceetCxVjffltHsRNUOfgVhTo8U",
+                      "width": 1280,
+                      "height": 720,
+                      "bitRate": 1443789,
+                      "mediaType": "video/mp4"
+                    },
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQFOUPeR648giQ/mp4-640p-30fp-crf28/B4DZdvOj51G8Bc-/0/1749917875155?e=1751814000&v=beta&t=sKfvCHUoNbFIr-y1Tjr52nmaHB0fQrgdHXXLw41BfPc",
+                      "width": 1138,
+                      "height": 640,
+                      "bitRate": 1135308,
+                      "mediaType": "video/mp4"
+                    }
+                  ]
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Shah Faisal",
+                  "headline": "\"Computer Vision Engineer | Deep Learning Expert | Python Developer | Data Scientist | NLP & Generative AI Specialist | Data bricks SQL & Power BI | Software Developer\"",
+                  "username": "shah-faisal-67a1a2240",
+                  "url": "https://www.linkedin.com/in/shah-faisal-67a1a2240",
+                  "profilePictures": [
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_400_400/profile-framedphoto-shrink_400_400/0/1725517478864?e=1751814000&v=beta&t=3nm2B8uHI21uu6xPPiZw63Zd_ipSM3EbR_XTift92Uk"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_200_200/profile-framedphoto-shrink_200_200/0/1725517478864?e=1751814000&v=beta&t=4xwX0THmbKR4yQB_gqth0GQoV5lJXKmM9dIzqhGG4Qk"
+                    },
+                    {
+                      "width": 592,
+                      "height": 592,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1725517478864?e=1751814000&v=beta&t=gqJbDk1Jj5cqFWdRP-NSHVhuqZcpqLCbnuBgl-Ok7yA"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_100_100/profile-framedphoto-shrink_100_100/0/1725517478847?e=1751814000&v=beta&t=DXYqLPe4qzn73tCRlCZbv3OibjoHFzWSLDXPeCXtsQE"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 14,
+                  "likeCount": 155,
+                  "appreciationCount": 1,
+                  "empathyCount": 12,
+                  "InterestCount": 0,
+                  "praiseCount": 10,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 178
+                }
+              },
+              {
+                "urn": "7339895051033944064",
+                "url": "https://www.linkedin.com/posts/arvindsubramani_ai-innovation-softwaredevelopment-activity-7339895051033944064-UXP5",
+                "template": "",
+                "text": "Check out my first AI upskilling project. A comprehensive sports analytics web application featuring expert consensus rankings, interactive visualizations, AI prediction for NBA draft. Zero human coding and built in < 20 hours !!!!\n\nTry the platform: www.draftfanpredictor.com\n\n#AI #Innovation #Softwaredevelopment #NBA #TechTrends",
+                "postedAt": "2w",
+                "postedDate": "2025-06-15 06:02:28.822 +0000 UTC",
+                "postedDateTimestamp": 1749967348822,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {
+                  "title": "Upskilling - Excited to share my first AI-powered web project!",
+                  "subtitle": "Arvind Subramani",
+                  "link": "https://www.linkedin.com/pulse/upskilling-excited-share-my-first-ai-powered-web-arvind-subramani-dog5c?trackingId=F6JjkaS7QxqvDt4ns1sn%2Bw%3D%3D"
+                },
+                "object": {},
+                "author": {
+                  "fullName": "Arvind Subramani",
+                  "headline": "Director Technology @ ManpowerGroup",
+                  "username": "arvindsubramani",
+                  "url": "https://www.linkedin.com/in/arvindsubramani",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/C5603AQG2QSEtKoj5WQ/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1617168356300?e=1756944000&v=beta&t=NMsnVlznQ3VcnXPASEGKnPHxud_TWL2Q04sS_DnOGLo"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/C5603AQG2QSEtKoj5WQ/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1617168356300?e=1756944000&v=beta&t=zlx1Op-l4T_YTsjfPkBiojrouaWjUSsWW2h_inB_Qqs"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/C5603AQG2QSEtKoj5WQ/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1617168356300?e=1756944000&v=beta&t=N6Rpp3Z8T24I2KQ8HaplZZCrXi5M2JIDgEHv7z5FUNE"
+                    },
+                    {
+                      "width": 465,
+                      "height": 465,
+                      "url": "https://media.licdn.com/dms/image/v2/C5603AQG2QSEtKoj5WQ/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1617168356300?e=1756944000&v=beta&t=bLZjvaUDixeRyCvwbK0130NrCc3zw03q8xOetO1aSRQ"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 9,
+                  "likeCount": 29,
+                  "appreciationCount": 1,
+                  "empathyCount": 4,
+                  "InterestCount": 0,
+                  "praiseCount": 6,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 40
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "json": {
+          "success": true,
+          "message": "",
+          "data": {
+            "total": 476,
+            "count": 10,
+            "items": [
+              {
+                "urn": "7337781881783889921",
+                "url": "https://www.linkedin.com/posts/omkar-ghanwat-32a9b0355_sportsanalytics-aiinsports-sportstech-activity-7337781881783889921-0yCk",
+                "template": "",
+                "text": "Sports Analytics Market Landscape: Emerging Technologies and Key Players\n\nAccording to Precedence Research, the global sports analytics market size was evaluated at USD 4.5 billion in 2024 and is expected to surge around USD 29.36 billion by 2034, growing at a CAGR of 20.63%.\n\nSports Analytics Market Companies\n\n🔹Agile Sports Analytics llc: Provides analytics software for coaches and teams, focusing on performance tracking and game strategy.\n\n🔹Catapult Group: Leads in wearable technology and athlete tracking, helping teams monitor player health and optimize training.\n\n🔹Deltatre S.P.A.: Offers digital and data solutions for fan engagement, content delivery, and in-depth sports analytics.\n\n🔹Experfy.: Delivers custom data science and analytics consulting, enabling teams to leverage big data and AI.\n\n🔹Genius Sports: Provides real-time sports data, analytics, and integrity services for leagues, teams, and betting companies.\n\n🔹IBM: Develops AI-powered analytics platforms for performance analysis, predictive modeling, and fan engagement.\n\n🔹Oracle: Offers cloud-based analytics for sports organizations, supporting data integration and performance insights.\n\n🔹SAP: Delivers integrated analytics platforms for player performance, fan engagement, and business operations.\n\n🔹ARECONT VISION LTD: Supplies high-resolution video surveillance used for player tracking, match analysis, and venue security.\n\n🔹Sportradar : Provides live sports data, analytics, and betting solutions for leagues, media, and bookmakers.\n\n#SportsAnalytics #AIinSports #SportsTech #DataDrivenSports #PerformanceAnalytics",
+                "postedAt": "2w",
+                "postedDate": "2025-06-09 10:05:30.012 +0000 UTC",
+                "postedDateTimestamp": 1749463530012,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {
+                  "title": "Sports Analytics Market Outlook 2025–2034: Trends, Growth, and AI Integration",
+                  "subtitle": "Omkar Ghanwat",
+                  "link": "https://www.linkedin.com/pulse/sports-analytics-market-outlook-20252034-trends-growth-omkar-ghanwat-rt0qc?trackingId=pGqEWJhjT5GVYcsd%2BonZ3A%3D%3D"
+                },
+                "object": {},
+                "author": {
+                  "fullName": "Omkar Ghanwat",
+                  "headline": "Search Engine Optimization Analyst at Precedence Research",
+                  "username": "omkar-ghanwat-32a9b0355",
+                  "url": "https://www.linkedin.com/in/omkar-ghanwat-32a9b0355",
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 2,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 2
+                }
+              },
+              {
+                "urn": "7336070733388787716",
+                "url": "https://www.linkedin.com/posts/hannan-mushtaq-8341222a4_football-match-outcome-prediction-activity-7336070733388787716-Tv-o",
+                "template": "",
+                "text": "⚽ Just wrapped up an exciting research project on Predicting Football Match Outcome using Machine Learning.\n\n🧾 A large and diverse data set of matches played after 2022 was used, covering 42 leagues from 27 countries around the world.\n\n🔍 I explored and compared various models including Logistic Regression, Random Forest, XGBoost, Neural Networks, and Ensemble Techniques like Voting and Stacking. Each model was evaluated using key performance metrics along with confusion matrix analysis.\n\n📊 The results were insightful and highlighted how advanced analytics and predictive modeling can help uncover patterns in sports data. This research reflects the growing intersection of AI and sports analytics, and I’m excited to continue exploring this space!\n\n🤝🏼 Grateful to my supervisor Mr. Muhammad Waseem and mentor Muhammad Kamran for their valuable guidance and constant encouragement throughout this journey.\n\n📈🏟️\n\n#MachineLearning #DataScience #FootballAnalytics #SportsAI #PredictiveModeling #EnsembleLearning #MLResearch #SportsTech",
+                "postedAt": "3w",
+                "postedDate": "2025-06-04 16:46:00.443 +0000 UTC",
+                "postedDateTimestamp": 1749055560443,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Hannan Mushtaq",
+                  "headline": "UET-CS'27 🎓",
+                  "username": "hannan-mushtaq-8341222a4",
+                  "url": "https://www.linkedin.com/in/hannan-mushtaq-8341222a4",
+                  "profilePictures": [
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQFJC7OLwRe4og/profile-displayphoto-shrink_400_400/B56ZPvRrvBG8Ak-/0/1734886211986?e=1756944000&v=beta&t=xLskXAExrsxGOhE6Cu2ceB56k24WNoLjdzdIg3WNGEg"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQFJC7OLwRe4og/profile-displayphoto-shrink_100_100/B56ZPvRrvBG8AY-/0/1734886211986?e=1756944000&v=beta&t=ANWbFmQ7sb8bNMUuW0U4yR_yjUP0kRvK6WpZHTDbLMo"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQFJC7OLwRe4og/profile-displayphoto-shrink_800_800/B56ZPvRrvBG8Ag-/0/1734886211986?e=1756944000&v=beta&t=vUxJZ0CGNQJjjbqVlAHWwCytB0YjX_YzGufMiA571kQ"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQFJC7OLwRe4og/profile-displayphoto-shrink_200_200/B56ZPvRrvBG8Ac-/0/1734886211969?e=1756944000&v=beta&t=ST1tWebogSnpfJMZgykH1jlnO9td8Sh0FzFRNQOH_Vg"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 1,
+                  "likeCount": 39,
+                  "appreciationCount": 0,
+                  "empathyCount": 4,
+                  "InterestCount": 1,
+                  "praiseCount": 2,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 46
+                }
+              },
+              {
+                "urn": "7339909535798595584",
+                "url": "https://www.linkedin.com/posts/siddhartha-dutta-79040b70_techatplay-artificialintelligence-sportstech-activity-7339909535798595584-zDHk",
+                "template": "",
+                "text": "Honoured to see TECH AT PLAY featured in today’s Times of India!\n\nWhile many worry about AI replacing jobs, we’ve always believed in a different story — one where humans and AI grow stronger together\n\nOur work in building advanced AI models for sports analytics is a reflection of this belief. At TECH AT PLAY, AI doesn't work in isolation. Behind every meaningful insight is a blend of cutting-edge algorithms and skilled human trainers. That’s how we ensure accuracy, context, and impact — especially in high-performance environments like sports.\n\nThank you Kritika Sharma from TOI (Times of India) for capturing this so thoughtfully, and for highlighting the invisible workforce shaping the future of AI.\nGrateful to the team, and partners who continue to push the boundaries.\nThis is just the beginning.\n\n#techatplay #artificialintelligence #sportstech #cricket #sportsanalytics #sportsanalysis #DeepTech #MadeInIndia",
+                "postedAt": "2w",
+                "postedDate": "2025-06-15 07:00:02.259 +0000 UTC",
+                "postedDateTimestamp": 1749970802259,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "image": [
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQHR7VeOtPIgbw/feedshare-shrink_1280/B56ZdyY0kuH8Ak-/0/1749970800662?e=1753920000&v=beta&t=J-1fcxEMMuw6vVVtnbLHTO3fTs0PdmfyphWHHaT7oJs",
+                    "width": 1234,
+                    "height": 1600
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQHR7VeOtPIgbw/feedshare-shrink_2048_1536/B56ZdyY0kuH8Ao-/0/1749970800668?e=1753920000&v=beta&t=1ADKmlAMnOlhd5nwL-dtwLtakg8TGgqK_KOrsbkibNM",
+                    "width": 1184,
+                    "height": 1536
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQHR7VeOtPIgbw/feedshare-shrink_160/B56ZdyY0kuH8Ac-/0/1749970800662?e=1753920000&v=beta&t=f79ejPAioTnGFMCd3mNNKRwbx8-SKwY-2EAFOzDJXVI",
+                    "width": 160,
+                    "height": 207
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQHR7VeOtPIgbw/feedshare-shrink_480/B56ZdyY0kuH8AY-/0/1749970800662?e=1753920000&v=beta&t=Q8gbtg4BYF4ZSmThrUCwlNO-zY6aGk-1sG0-UKMwpBU",
+                    "width": 480,
+                    "height": 622
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQHR7VeOtPIgbw/feedshare-shrink_20/B56ZdyY0kuH8Aw-/0/1749970800608?e=1753920000&v=beta&t=HC_T5zNvj8AKEy2NJ7OErTmQ4Y1ALs6PS8oHLW1O8rs",
+                    "width": 20,
+                    "height": 25
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQHR7VeOtPIgbw/feedshare-shrink_800/B56ZdyY0kuH8Ag-/0/1749970800608?e=1753920000&v=beta&t=mgpL925wchzwM3_bNuadCbP_qQEKqkwgMhrIz5TjxLk",
+                    "width": 800,
+                    "height": 1037
+                  }
+                ],
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Siddhartha Dutta",
+                  "headline": "Founder | Deep Tech Innovator | Patent-Published | Global Sales & Strategy | Market Expansion | Product Visionary",
+                  "username": "siddhartha-dutta-79040b70",
+                  "url": "https://www.linkedin.com/in/siddhartha-dutta-79040b70",
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 2,
+                  "likeCount": 25,
+                  "appreciationCount": 0,
+                  "empathyCount": 5,
+                  "InterestCount": 1,
+                  "praiseCount": 8,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 39
+                }
+              },
+              {
+                "urn": "7339687559918157825",
+                "url": "https://www.linkedin.com/posts/shah-faisal-67a1a2240_ai-boxing-yolo-activity-7339687559918157825-5XM4",
+                "template": "",
+                "text": "#AI-Powered Rumble Boxing Analytics System Just Dropped! 🥊📊\nThrilled to unveil my latest Computer Vision innovation that’s turning heads in the sports tech world!\nI’ve built a real-time #Boxing Performance Analytics System that fuses Mediapipes Pose Detection with #YOLO Object Detection—all wrapped in a slick, animated #UI.\n What started as a passion project is now a powerful tool for #fighters, #coaches, and #analysts.\n✨ Key Features:\n ✅ Real-time punch detection & classification (#Jab, #Cross, #Hook, #Uppercut)\n ✅ 33-point pose estimation with clean, intuitive visuals\n ✅ Advanced metrics: #Power, #Speed, #Technique, #Energy level tracking\n ✅ Gorgeous #UI: Animated overlays, particle FX, volume bars\n ✅ Smart combo recognition & fatigue simulation\n ✅ Built with MediaPipe for superior pose accuracy\n🛠️ Tech Stack:\n 🔹 #Python + #OpenCV\n 🔹 #MediaPipe (pose tracking)\n 🔹 #YOLO (person detection)\n🎯 This system simulates what you'd expect from high-end motion capture setups—using only a camera. Whether you're boxing solo or coaching a team, it delivers insights into technique, endurance, and strike precision.\n💡 I’m now considering scaling this into a full AI Sports Analytics Platform for martial arts, fitness, and performance coaching.\n📣 Would love your feedback, ideas, or partnerships—especially from fellow devs, trainers, and sports tech innovators!\n#ComputerVision #AI #SportsAnalytics #Python #OpenCV #MediaPipe #YOLO #Boxing #MachineLearning #PoseEstimation #RealTimeAnalytics #SportsTech #FitnessAI #Innovation #AIForGood #DeepLearning #MartialArts #StartupIdeas #VideoAnalysis #TechInnovation #ArtificialIntelligence #Developer #OpenSource #AthletePerformance\nMicrosoft Google Meta Amazon NVIDIA OpenAI Apple Samsung Electronics Samsung Research America (SRA) OceanPark Financial CVAT.AI | Python Software Foundation |IBM | LinkedIn | Tesla | SpaceX Victra - Verizon Authorized Retailer International Institute of SDG's and Public Policy Research  OCAC Training Center| Qualcomm | Palantir Technologies | Bloomberg News | Rise Technical | Lockheed Martin | UK Ministry of Defence |SAIC|Raptive | Caf|Muhammad Rizwan Munawar Ultralytics Danny Wallschlaeger Artur Cortelli Junior  \n \n\nIf you encounter any issues with model development or training, feel free to contact me via WhatsApp or email\n\nEmail: shahfaisal15401@gmail.com\nWhatsApp : +923125094307",
+                "postedAt": "2w",
+                "postedDate": "2025-06-14 16:17:59.085 +0000 UTC",
+                "postedDateTimestamp": 1749917879085,
+                "reposted": false,
+                "video": {
+                  "media": "urn:li:digitalmediaAsset:D4D05AQFOUPeR648giQ",
+                  "entityUrn": "urn:li:digitalmediaAsset:D4D05AQFOUPeR648giQ",
+                  "duration": 44133,
+                  "thumbnails": [
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D4D05AQFOUPeR648giQ/feedshare-thumbnail_720_1280/B4DZdvOj51G8As-/0/1749917779558?e=1751814000&v=beta&t=yMScE6QstShXs74AA3xAlDDnFusFgVIOGrJJ6VgkL34",
+                      "width": 1024,
+                      "height": 590
+                    }
+                  ],
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQFOUPeR648giQ/mp4-720p-30fp-crf28/B4DZdvOj51G8Bg-/0/1749917875987?e=1751814000&v=beta&t=MSp7Ajg4DINaXzmvYceetCxVjffltHsRNUOfgVhTo8U",
+                      "width": 1280,
+                      "height": 720,
+                      "bitRate": 1443789,
+                      "mediaType": "video/mp4"
+                    },
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQFOUPeR648giQ/mp4-640p-30fp-crf28/B4DZdvOj51G8Bc-/0/1749917875155?e=1751814000&v=beta&t=sKfvCHUoNbFIr-y1Tjr52nmaHB0fQrgdHXXLw41BfPc",
+                      "width": 1138,
+                      "height": 640,
+                      "bitRate": 1135308,
+                      "mediaType": "video/mp4"
+                    }
+                  ]
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Shah Faisal",
+                  "headline": "\"Computer Vision Engineer | Deep Learning Expert | Python Developer | Data Scientist | NLP & Generative AI Specialist | Data bricks SQL & Power BI | Software Developer\"",
+                  "username": "shah-faisal-67a1a2240",
+                  "url": "https://www.linkedin.com/in/shah-faisal-67a1a2240",
+                  "profilePictures": [
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_400_400/profile-framedphoto-shrink_400_400/0/1725517478864?e=1751814000&v=beta&t=3nm2B8uHI21uu6xPPiZw63Zd_ipSM3EbR_XTift92Uk"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_200_200/profile-framedphoto-shrink_200_200/0/1725517478864?e=1751814000&v=beta&t=4xwX0THmbKR4yQB_gqth0GQoV5lJXKmM9dIzqhGG4Qk"
+                    },
+                    {
+                      "width": 592,
+                      "height": 592,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1725517478864?e=1751814000&v=beta&t=gqJbDk1Jj5cqFWdRP-NSHVhuqZcpqLCbnuBgl-Ok7yA"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_100_100/profile-framedphoto-shrink_100_100/0/1725517478847?e=1751814000&v=beta&t=DXYqLPe4qzn73tCRlCZbv3OibjoHFzWSLDXPeCXtsQE"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 14,
+                  "likeCount": 155,
+                  "appreciationCount": 1,
+                  "empathyCount": 12,
+                  "InterestCount": 0,
+                  "praiseCount": 10,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 178
+                }
+              },
+              {
+                "urn": "7336046342424678401",
+                "url": "https://www.linkedin.com/posts/omar-hayla-387307311_ai-computervision-sportsanalytics-activity-7336046342424678401-MFIy",
+                "template": "",
+                "text": "🎾 Excited to share my latest project: AI-Powered Tennis Analysis System!\nAfter months of intensive development and research, I've built an AI system that revolutionizes tennis match analysis using computer vision and deep learning. This project showcases the power of modern AI in transforming sports analytics.\n🚀 What makes this system special?\n✅ Real-time Player & Ball Tracking using custom YOLO models ✅ Court Keypoint Detection with 75% precision using ResNet-50 ✅ Automated Performance Metrics - shot speed, player speed, distance covered ✅ Mini Court Visualization - 2D real-time positioning ✅ Stamina Tracking with dynamic depletion modeling\n📊 Key Results:\nPlayer Detection: 99.1% Precision\nBall Detection: 83.5% Precision\nShot Speed Analysis: Within 20% of real-world tennis data\nReal-time Processing for 5-20 second video segments\n🔬 Technical Highlights:\nThe system integrates YOLO v8 for player detection, YOLO v5 for ball tracking, and a modified ResNet-50 for court keypoint extraction. Built with PyTorch, OpenCV, and trained on Google Colab with A100 GPUs.\n💻 Check out the project: https://lnkd.in/gBJR8SCq \n#AI #ComputerVision #SportsAnalytics #MachineLearning #TennisAnalysis #DeepLearning",
+                "postedAt": "3w",
+                "postedDate": "2025-06-04 15:09:05.184 +0000 UTC",
+                "postedDateTimestamp": 1749049745184,
+                "reposted": false,
+                "video": {
+                  "media": "urn:li:digitalmediaAsset:D5605AQHEZv2Pmj0iCg",
+                  "entityUrn": "urn:li:digitalmediaAsset:D5605AQHEZv2Pmj0iCg",
+                  "duration": 10633,
+                  "thumbnails": [
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D5605AQHEZv2Pmj0iCg/feedshare-thumbnail_720_1280/B56Zc7fLkSGQAw-/0/1749049724059?e=1751814000&v=beta&t=SninU7vNv-H7P2kt2sJU7MlwUNvAjGb53TP2uZHVTW0",
+                      "width": 728,
+                      "height": 410
+                    }
+                  ],
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D5605AQHEZv2Pmj0iCg/mp4-720p-30fp-crf28/B56Zc7fLkSGQBQ-/0/1749049742552?e=1751814000&v=beta&t=TJfBpRKocwnJ5-C_-50tTwa474yMSxRcAd1XopJAA68",
+                      "width": 1280,
+                      "height": 720,
+                      "bitRate": 526714,
+                      "mediaType": "video/mp4"
+                    },
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D5605AQHEZv2Pmj0iCg/mp4-640p-30fp-crf28/B56Zc7fLkSGQBM-/0/1749049742602?e=1751814000&v=beta&t=riQ9BCCIHPlYy5SDAKGw5NVuwk2qPezBXqsM_qkRmWI",
+                      "width": 1138,
+                      "height": 640,
+                      "bitRate": 414358,
+                      "mediaType": "video/mp4"
+                    }
+                  ]
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "OMAR HAYLA",
+                  "headline": "Student in Master Business intelligence & big data analytics",
+                  "username": "omar-hayla-387307311",
+                  "url": "https://www.linkedin.com/in/omar-hayla-387307311",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQGE9MahPHXthg/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1718318987011?e=1756944000&v=beta&t=PmpW-Z7LCBljA3BBEwJaBx8-__zsaRqrHAv5Ehbo-TE"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQGE9MahPHXthg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1719036176216?e=1756944000&v=beta&t=RtbFtp3BbLXm0AvBx-7lS-jjnsHbLHKJuY57a4BLVi0"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQGE9MahPHXthg/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1719036190890?e=1756944000&v=beta&t=nr5zdWkWxdf-UmTvkhXk-C2NO0eDnYFytkB4NKNHuf8"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQGE9MahPHXthg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1719039091417?e=1756944000&v=beta&t=H4d4sUDCnEiCCCwM59wBOzjKhM5NzgexB0yEp9g8XTs"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 6,
+                  "likeCount": 31,
+                  "appreciationCount": 0,
+                  "empathyCount": 5,
+                  "InterestCount": 1,
+                  "praiseCount": 34,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 71
+                }
+              },
+              {
+                "urn": "7338588334878814208",
+                "url": "https://www.linkedin.com/posts/andrea-catucci-0519482ba_over-the-last-6-months-our-team-at-bruin-activity-7338588334878814208-Q9CR",
+                "template": "",
+                "text": "🏀 Over the last 6 months, our team at Bruin Sports Analytics developed an AI assistant coach in collaboration with the UCLA Women’s Basketball Team. The goal? Build something useful, impactful—and production-ready.\n\n📊 Traditionally, the team’s data analysts prepare weekly reports manually, sharing game insights with coaching staff just once a week. This delays decision-making and consumes analyst time on formatting and presentation work.\n\n🤖 Our AI tool changes that. Coaches and staff can now ask questions about players, games, and performance anytime—and get instant, data-backed answers through a conversational interface.\n\n🧠 Behind the scenes, the assistant handles:\n- Natural language understanding\n- Entity and context extraction\n- Data filtering and SQL generation\n- Error handling and final answer generation\n\n🔬 A major challenge was the lack of research on Retrieval-Augmented Generation (RAG) with tabular data. We had to design creative solutions at multiple steps in the pipeline, balancing flexibility with precision.\n\n🚀 Next steps:\nLogging and memory for follow-up queries\nLive data integration\nVisualized responses\nRobust testing for real-world deployment\n\n💻 Our project is open-source! Dive into the code here:\n https://lnkd.in/d4UJG4NN\n\n:\n👏 Huge gratitude to our mentors Prof. Michele Guindani and Prof. Dave Zes for their invaluable guidance throughout the project. And of course, cheers to the dream team: Rhea Jain, Om Phadke, and Harsh Govindji\n\n🎥 Demo video below — let us know what you think!",
+                "postedAt": "2w",
+                "postedDate": "2025-06-11 15:30:03.413 +0000 UTC",
+                "postedDateTimestamp": 1749655803413,
+                "reposted": false,
+                "video": {
+                  "media": "urn:li:digitalmediaAsset:D4D05AQEc7wvQ2E2sDQ",
+                  "entityUrn": "urn:li:digitalmediaAsset:D4D05AQEc7wvQ2E2sDQ",
+                  "duration": 16833,
+                  "thumbnails": [
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D4D05AQEc7wvQ2E2sDQ/feedshare-thumbnail_720_1280/B4DZdbQjOdHMAs-/0/1749582755434?e=1751814000&v=beta&t=qWDBACFlrmboWMEWF0fMp5iQk9gA6wA7ckcE33OuCr8",
+                      "width": 1280,
+                      "height": 642
+                    }
+                  ],
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQEc7wvQ2E2sDQ/mp4-720p-30fp-crf28/B4DZdbQjOdHMBM-/0/1749582762586?e=1751814000&v=beta&t=QQx8dX6UrTDkPRAKPESIiW817vFYoBp4bWaCBqDg_ZA",
+                      "width": 1528,
+                      "height": 720,
+                      "bitRate": 238222,
+                      "mediaType": "video/mp4"
+                    },
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQEc7wvQ2E2sDQ/mp4-640p-30fp-crf28/B4DZdbQjOdHMBI-/0/1749582762506?e=1751814000&v=beta&t=x1YXYzej-LjokjBc2pcjr74TuoJzMwUjASTy-uzyOh8",
+                      "width": 1358,
+                      "height": 640,
+                      "bitRate": 190691,
+                      "mediaType": "video/mp4"
+                    }
+                  ]
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Andrea Catucci",
+                  "headline": "AI for Social Impact | Student and Researcher at UCLA",
+                  "username": "andrea-catucci-0519482ba",
+                  "url": "https://www.linkedin.com/in/andrea-catucci-0519482ba",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQFlHkziJiSSgA/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1713463648488?e=1756944000&v=beta&t=C5_NLPiYF4IZ8XsucuIGiaVuPndbLxpSIiv4aI2Prmw"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQFlHkziJiSSgA/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1713463648488?e=1756944000&v=beta&t=RiV5oZQxKICPlPBG0VpOCjJiv1lWmpj5Ne0V3yobebs"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQFlHkziJiSSgA/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1713463648488?e=1756944000&v=beta&t=8vF0JG4XD1b9HtpBhErUHDtlM2cqfATW1tp8RLYBQ6s"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQFlHkziJiSSgA/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1713463648488?e=1756944000&v=beta&t=ZBB0LVGw8AlErVU3sLnnOkufKsXfwi8cRC28SNJlc9s"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 2,
+                  "likeCount": 20,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 1,
+                  "praiseCount": 3,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 24
+                }
+              },
+              {
+                "urn": "7336718193282961409",
+                "url": "https://www.linkedin.com/posts/abhishek-sharma-founder-kuchoriya-techsoft_aiingambling-igamingsolutions-responsiblegambling-activity-7336718193282961409-P-zx",
+                "template": "",
+                "text": "🎰 AI’s Game-Changing Impact on the Gambling Industry in 2025 🤖\n\nThe global gambling sector is undergoing a massive shift—AI is no longer optional, it’s a necessity. From personalized player journeys to predictive sportsbook analytics and AI-driven compliance tools, the impact is profound:\n\n✅ 70%+ platforms use AI\n✅ 35% boost in player retention\n✅ 40% drop in fraud losses\n\nAt Kuchoriya TechSoft, we help operators transform with AI-powered gambling and iGaming platforms—from sportsbook optimization to real-time fraud detection, chatbot support, and regulatory compliance.\n\n💡 Our latest whitepaper dives deep into:\n🎮 AI personalization and player engagement\n📊 Predictive analytics in sports betting\n🔐 AI for fraud prevention & KYC/AML\n⚖️ Ethical gaming & regulatory trends\n🌍 Regional adoption insights from the US, UK, Asia, and MENA\n🚀 The future? AI + Blockchain + Emotion AI = Transparent, immersive, and responsible gaming.\n\n📞 Let’s talk innovation and explore how we can support your digital transformation.\n\n📩 info@kuchoriyatechsoft.com\n🌐 www.kuchoriyatechsoft.com\n📅 Book a call:  https://lnkd.in/g_77Zitv\n\n#AIinGambling #iGamingSolutions #ResponsibleGambling #AITransformation #SportsbookTech #GamblingInnovation #AMLCompliance #AIinSportsBetting #GamblingTechnology #GamblingRegulation #KuchoriyaTechSoft #GamblingSecurity #iGamingDevelopment #CasinoTech #GamblingAI #TechForGambling #CanadaTech #DubaiTech #MiddleEastGaming #AsiaiGaming #UKGamblingCompliance",
+                "postedAt": "3w",
+                "postedDate": "2025-06-06 11:38:46.911 +0000 UTC",
+                "postedDateTimestamp": 1749209926911,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {
+                  "title": "How AI Is Transforming the Gambling Industry in 2025",
+                  "subtitle": "Abhishek Sharma (🇨🇦 I 🇺🇸 I 🇿🇦 I 🇦🇪 I 🇦🇺)",
+                  "link": "https://www.linkedin.com/pulse/how-ai-transforming-gambling-industry-2025-abhishek--9j6pc?trackingId=hYMxb%2FkfTTOESZ8jvnNQTw%3D%3D"
+                },
+                "object": {},
+                "author": {
+                  "fullName": "Abhishek Sharma (🇨🇦 I 🇺🇸 I 🇿🇦 I 🇦🇪 I 🇦🇺)",
+                  "headline": "Founder at Kuchoriya TechSoft | Mobile App, Website, Blockchain, Game, AR/VR, AI , SAP, Salesforce, Pimcore I o9 Solution I HubSpot, Zoho, Microsoft Dynamic Development I Innovative Software Solutions I IPTV App I",
+                  "username": "abhishek-sharma-founder-kuchoriya-techsoft",
+                  "url": "https://www.linkedin.com/in/abhishek-sharma-founder-kuchoriya-techsoft",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHXjoLK1Ok8Xg/profile-framedphoto-shrink_100_100/B56ZZYMSr9HQAk-/0/1745236339811?e=1751814000&v=beta&t=g4oL_qrLyDNS1z86wqceAc6G5HzRK5RPfEpN_R-C5F0"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHXjoLK1Ok8Xg/profile-framedphoto-shrink_200_200/B56ZZYMSr9HQAY-/0/1745236339811?e=1751814000&v=beta&t=ardQ_YmDZZSWuAmO-35F2nONWCCpvT86dwLcH8q0U00"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHXjoLK1Ok8Xg/profile-framedphoto-shrink_800_800/B56ZZYMSr9HQAg-/0/1745236339811?e=1751814000&v=beta&t=wOvHCr3dwCpF3jzjVVx7ihJ0HJrj-U_EEghk18aXR-o"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHXjoLK1Ok8Xg/profile-framedphoto-shrink_400_400/B56ZZYMSr9HQAc-/0/1745236339696?e=1751814000&v=beta&t=ehJQ4PsWT_8lWBRSqZw8BFFY6qFdKC2l7oxiuJE-g6M"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 9,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 9
+                }
+              },
+              {
+                "urn": "7339403873549172738",
+                "url": "https://www.linkedin.com/posts/dougdkellogg_databricks-activity-7339403873549172738-3HHz",
+                "template": "",
+                "text": "\"Moneyball\" introduced the benefits of data analytics to MLB nearly 25 years ago.  Since then, all professional sports organizations have become data driven in pursuit of championships.  In spirit of the NBA championship currently underway between Oklahoma City Thunder and Indiana Pacers, this article captured my attention. \n\nDirector of Business Analytics upon seeing Databricks for the first time: “This is the most advanced data platform I have seen.”  #databricks",
+                "postedAt": "2w",
+                "postedDate": "2025-06-13 21:30:42.984 +0000 UTC",
+                "postedDateTimestamp": 1749850242984,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {
+                  "title": "Transforming Sports Data with Databricks",
+                  "subtitle": "Jared Chavez",
+                  "link": "https://www.linkedin.com/pulse/transforming-sports-data-databricks-jared-chavez-xgooc?trackingId=woar8dC1RhG26mb7P7isQw%3D%3D"
+                },
+                "object": {},
+                "author": {
+                  "fullName": "Doug Kellogg",
+                  "headline": "Sales Leadership | Data Integration & Governance | Business Intelligence & Analytics | Enterprise Applications | Customer Success",
+                  "username": "dougdkellogg",
+                  "url": "https://www.linkedin.com/in/dougdkellogg",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQHJNOE_qIXfdQ/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1710796618730?e=1756944000&v=beta&t=olrAgQoStjCJesmWpg5sjD5bkYCywTeofL7inLZcByQ"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQHJNOE_qIXfdQ/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1710796618730?e=1756944000&v=beta&t=uABKINsZOmrn_HgdN2uSnz0b_VlSBpLS-byATQjnImY"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQHJNOE_qIXfdQ/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1710796618730?e=1756944000&v=beta&t=EZfSJ4Sf2FING8-6Li8lr8A5mCVMIcYw56TvaFnyG34"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQHJNOE_qIXfdQ/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1710796618730?e=1756944000&v=beta&t=keyYWVpb8G5lwe6rHv0hAANpIHz4Onk9aht93sN8yoU"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 1,
+                  "likeCount": 10,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 10
+                }
+              },
+              {
+                "urn": "7336719195063185411",
+                "url": "https://www.linkedin.com/posts/dmartina-founder-kuchoriyasoftwares_aiingambling-igamingsolutions-responsiblegambling-activity-7336719195063185411-FaaG",
+                "template": "",
+                "text": "🎰 AI’s Game-Changing Impact on the Gambling Industry in 2025 🤖\n\nThe global gambling sector is undergoing a massive shift—AI is no longer optional, it’s a necessity. From personalized player journeys to predictive sportsbook analytics and AI-driven compliance tools, the impact is profound:\n\n✅ 70%+ platforms use AI\n✅ 35% boost in player retention\n✅ 40% drop in fraud losses\n\nAt Kuchoriya TechSoft, we help operators transform with AI-powered gambling and iGaming platforms—from sportsbook optimization to real-time fraud detection, chatbot support, and regulatory compliance.\n\n💡 Our latest whitepaper dives deep into:\n🎮 AI personalization and player engagement\n📊 Predictive analytics in sports betting\n🔐 AI for fraud prevention & KYC/AML\n⚖️ Ethical gaming & regulatory trends\n\n🌍 Regional adoption insights from the US, UK, Asia, and MENA\n\n🚀 The future? AI + Blockchain + Emotion AI = Transparent, immersive, and responsible gaming.\n\n📞 Let’s talk innovation and explore how we can support your digital transformation.\n\n📩 info@kuchoriyatechsoft.com\n🌐 www.kuchoriyatechsoft.com\n📅 Book a call: https://lnkd.in/gyHWa9WM\n\n#AIinGambling #iGamingSolutions #ResponsibleGambling #AITransformation #SportsbookTech #GamblingInnovation #AMLCompliance #AIinSportsBetting #GamblingTechnology #GamblingRegulation #KuchoriyaTechSoft #GamblingSecurity #iGamingDevelopment #CasinoTech #GamblingAI #TechForGambling #CanadaTech #DubaiTech #MiddleEastGaming #AsiaiGaming #UKGamblingCompliance",
+                "postedAt": "3w",
+                "postedDate": "2025-06-06 11:42:45.754 +0000 UTC",
+                "postedDateTimestamp": 1749210165754,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {
+                  "title": "How AI Is Transforming the Gambling Industry in 2025",
+                  "subtitle": "DMartina D.",
+                  "link": "https://www.linkedin.com/pulse/how-ai-transforming-gambling-industry-2025-dmartina-deepika-v5p4c?trackingId=ohLnDbjJSyabPYIRQNbvZA%3D%3D"
+                },
+                "object": {},
+                "author": {
+                  "fullName": "DMartina D.",
+                  "headline": "Founder & CEO at Kuchoriya TechSoft",
+                  "username": "dmartina-founder-kuchoriyasoftwares",
+                  "url": "https://www.linkedin.com/in/dmartina-founder-kuchoriyasoftwares",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQGPl-_wf0iEjg/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1674646926829?e=1756944000&v=beta&t=udylzF6a8YKxSeeUCchSZgN_jDCrhbqp-zXVfOObFmE"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQGPl-_wf0iEjg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1674646926829?e=1756944000&v=beta&t=5DEoSyXhltnqHETi7FEQF3DbS9EuN26kqJ4BSgb6WXY"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQGPl-_wf0iEjg/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1674646926829?e=1756944000&v=beta&t=vzElqTC9G5hypcaTJLtPIvqXtP-jlOe6IuiEVMn6GK4"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQGPl-_wf0iEjg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1674646926829?e=1756944000&v=beta&t=sX4S4B49qLpBJEWkd4QdYRzfnWXrQtVyXgHwa0lD8XA"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 10,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 10
+                }
+              },
+              {
+                "urn": "7342812281266712577",
+                "url": "https://www.linkedin.com/posts/shah-faisal-67a1a2240_ai-ai-yolov8n-activity-7342812281266712577-T33Z",
+                "template": "",
+                "text": "🚀 Excited to share my latest project: Football Vision #AI! ⚽\nJust completed building an advanced Computer Vision system that brings #AI to the beautiful game! This project combines cutting-edge machine learning with real-time sports analysis to transform how we understand football matches.\n🔥 What it does: ✅ Smart Player Detection - Accurately identifies and tracks all players, referees, and goalkeepers using #YOLOv8n + #BoTSORT ✅ Team Classification - Automatically differentiates between two teams using PCA and K-Means clustering ✅ Real-time Visualizations - Dynamic match state representations with live tracking ✅ Ball Tracking - Precise ball detection and movement analysis\n⚡ Key Technical Improvements (over original implementation): • Enhanced Speed: Switched from #YOLOv8x to #YOLOv8n for 3x faster detection while maintaining accuracy • Optimized Pose Detection: #YOLOv8n Pose for efficient keypoint detection • Smarter Clustering: Implemented #PCA + K-Means directly on cropped players (no #ReID needed) • Robust Pipeline: Added error handling for challenging video conditions\n🎯 Perfect for:\nSports analytics teams\nFootball coaches seeking tactical insights\nAI researchers in computer vision\nAnyone passionate about the intersection of sports & technology\nThe system processes video frames in real-time, providing immediate insights into player positions, team formations, and game dynamics. It's fascinating to see how #AI can enhance our understanding of the world's most popular sport!\n💡 Next steps: Planning to add heat maps, player speed analysis, and formation recognition!\nSpecial thanks to the original tutorial that inspired this enhanced implementation. Building on existing work and adding improvements is what drives innovation forward! 🙌\nWhat sports analytics features would you be most excited to see in AI-powered football analysis? Drop your thoughts below! 👇\n#AI #MachineLearning #ComputerVision #SportsTech #Football #YOLOv8 #DataScience #SportsAnalytics #OpenCV #Python #TechInnovation #ArtificialIntelligence\nDeepLearning.AI CVAT.AI | Python Software Foundation | Amazon | Google | IBM | Intel Corporation | LinkedIn | Fiverr Tesla | SpaceX | Apple | Qualcomm | Palantir Technologies | Bloomberg News | Rise Technical | Lockheed Martin | SAIC |Raptive | Caf| Network International| Muhammad Rizwan Munawar Ultralytics OpenCV College of Information and Cyberspace, National Defense University Department of International Relations, NDU Pakistan National University of Sciences and Technology (NUST) Quaid-i-Azam University, Islamabad Iqra University, Islamabad Campus\n\nIf you encounter any issues with model development or training, feel free to contact me via WhatsApp or email\n\nEmail: shahfaisal15401@gmail.com\nWhatsApp : +923125094307",
+                "postedAt": "6d",
+                "postedDate": "2025-06-23 07:14:30.709 +0000 UTC",
+                "postedDateTimestamp": 1750662870709,
+                "reposted": false,
+                "video": {
+                  "media": "urn:li:digitalmediaAsset:D4D05AQF3qSQE0fzEMQ",
+                  "entityUrn": "urn:li:digitalmediaAsset:D4D05AQF3qSQE0fzEMQ",
+                  "duration": 30000,
+                  "thumbnails": [
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D4D05AQF3qSQE0fzEMQ/feedshare-thumbnail_720_1280/B4DZebol1AGsAs-/0/1750662800366?e=1751814000&v=beta&t=nt2h8OfcOGv4Fb1o-UCQpDfhxJN5AcM-utRlkavIHoI",
+                      "width": 1023,
+                      "height": 587
+                    }
+                  ],
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQF3qSQE0fzEMQ/mp4-720p-30fp-crf28/B4DZebol1AGsBg-/0/1750662868307?e=1751814000&v=beta&t=CizthAhQKR2LxoRRasOmuX-jQb0tpeGE_zg35Zza1fA",
+                      "width": 1280,
+                      "height": 720,
+                      "bitRate": 1404815,
+                      "mediaType": "video/mp4"
+                    },
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D4D05AQF3qSQE0fzEMQ/mp4-640p-30fp-crf28/B4DZebol1AGsBc-/0/1750662866723?e=1751814000&v=beta&t=w98ZoQudJYMchWwOOh8HN3kMwp4h9ecmAwqozzliCgQ",
+                      "width": 1138,
+                      "height": 640,
+                      "bitRate": 1071341,
+                      "mediaType": "video/mp4"
+                    }
+                  ]
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Shah Faisal",
+                  "headline": "\"Computer Vision Engineer | Deep Learning Expert | Python Developer | Data Scientist | NLP & Generative AI Specialist | Data bricks SQL & Power BI | Software Developer\"",
+                  "username": "shah-faisal-67a1a2240",
+                  "url": "https://www.linkedin.com/in/shah-faisal-67a1a2240",
+                  "profilePictures": [
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_400_400/profile-framedphoto-shrink_400_400/0/1725517478864?e=1751814000&v=beta&t=3nm2B8uHI21uu6xPPiZw63Zd_ipSM3EbR_XTift92Uk"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_200_200/profile-framedphoto-shrink_200_200/0/1725517478864?e=1751814000&v=beta&t=4xwX0THmbKR4yQB_gqth0GQoV5lJXKmM9dIzqhGG4Qk"
+                    },
+                    {
+                      "width": 592,
+                      "height": 592,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1725517478864?e=1751814000&v=beta&t=gqJbDk1Jj5cqFWdRP-NSHVhuqZcpqLCbnuBgl-Ok7yA"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D35AQFnnCHE6PMZkw/profile-framedphoto-shrink_100_100/profile-framedphoto-shrink_100_100/0/1725517478847?e=1751814000&v=beta&t=DXYqLPe4qzn73tCRlCZbv3OibjoHFzWSLDXPeCXtsQE"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 5,
+                  "likeCount": 67,
+                  "appreciationCount": 0,
+                  "empathyCount": 11,
+                  "InterestCount": 0,
+                  "praiseCount": 1,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 79
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "json": {
+          "success": true,
+          "message": "",
+          "data": {
+            "total": 476,
+            "count": 10,
+            "items": [
+              {
+                "urn": "7339147030654607361",
+                "url": "https://www.linkedin.com/posts/indian-marketers_ai-mode-for-smart-data-insights-in-sports-activity-7339147030654607361-t2Yh",
+                "template": "",
+                "text": "🔍 AI is revolutionizing data analysis in industries like sports and finance 📊\n\nWith Google’s AI Mode, complex datasets are now easier to understand and visualize, empowering businesses to make data-driven decisions in real-time.\n\nIs your business ready to leverage AI for actionable insights?\n\nHere’s how to optimize your data for AI-powered analysis:\n1️⃣ Ensure your datasets are clean and well-structured\n2️⃣ Keep data up-to-date and accessible for real-time processing\n3️⃣ Use visualizations and metadata to enhance AI insights\n\nStay ahead in a world where data is king and AI unlocks its true potential.\n\nFollow Indian Marketers for more expert insights on leveraging AI for data-driven growth!\n\n#GoogleIO #AIMode #DataAnalysis #FinancialData #AIforBusiness #GoogleAI #DataInsights #SEOtrends #IndianMarketers",
+                "postedAt": "2w",
+                "postedDate": "2025-06-13 04:30:06.866 +0000 UTC",
+                "postedDateTimestamp": 1749789006866,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Indian Marketers",
+                  "headline": "574 followers",
+                  "username": "indian-marketers",
+                  "url": "https://www.linkedin.com/company/indian-marketers/",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D0BAQH8EIQoO7t7ww/company-logo_100_100/B4DZafE_XQG8AQ-/0/1746425608090/indian_marketers_logo?e=1756944000&v=beta&t=zVZqffwfD5ZSbkBmrTYRJN5iUKuukwPqlsVilgvTFdo"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D0BAQH8EIQoO7t7ww/company-logo_400_400/B4DZafE_XQG8AY-/0/1746425608090/indian_marketers_logo?e=1756944000&v=beta&t=ThI5FWxS6YH27xJfOaKq3Dk0V0bYiKqZCkkNQnt1P8o"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D0BAQH8EIQoO7t7ww/company-logo_200_200/B4DZafE_XQG8AI-/0/1746425608090/indian_marketers_logo?e=1756944000&v=beta&t=4RsDkfdo1I8ldqvw7qqreEehZVpn_2ZbGzZ_NXIwt3M"
+                    }
+                  ],
+                  "type": "company"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 3,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 3
+                }
+              },
+              {
+                "urn": "7336725762852474881",
+                "url": "https://www.linkedin.com/posts/kuchoriyatechsoft_aiingambling-igamingsolutions-responsiblegambling-activity-7336725762852474881-LM-o",
+                "template": "",
+                "text": "🎰 AI’s Game-Changing Impact on the Gambling Industry in 2025 🤖\n\nThe global gambling sector is undergoing a massive shift—AI is no longer optional, it’s a necessity. From personalized player journeys to predictive sportsbook analytics and AI-driven compliance tools, the impact is profound:\n\n✅ 70%+ platforms use AI\n✅ 35% boost in player retention\n✅ 40% drop in fraud losses\n\nAt Kuchoriya TechSoft, we help operators transform with AI-powered gambling and iGaming platforms—from sportsbook optimization to real-time fraud detection, chatbot support, and regulatory compliance.\n\n💡 Our latest whitepaper dives deep into:\n🎮 AI personalization and player engagement\n📊 Predictive analytics in sports betting\n🔐 AI for fraud prevention & KYC/AML\n⚖️ Ethical gaming & regulatory trends\n🌍 Regional adoption insights from the US, UK, Asia, and MENA\n🚀 The future? AI + Blockchain + Emotion AI = Transparent, immersive, and responsible gaming.\n\n📞 Let’s talk innovation and explore how we can support your digital transformation.\n\n📩 info@kuchoriyatechsoft.com\n🌐 www.kuchoriyatechsoft.com\n📅 Book a call: https://lnkd.in/gmGAjYeu\n\n#AIinGambling #iGamingSolutions #ResponsibleGambling #AITransformation #SportsbookTech #GamblingInnovation #AMLCompliance #AIinSportsBetting #GamblingTechnology #GamblingRegulation #KuchoriyaTechSoft #GamblingSecurity #iGamingDevelopment #CasinoTech #GamblingAI #TechForGambling #CanadaTech #DubaiTech #MiddleEastGaming #AsiaiGaming #UKGamblingCompliance",
+                "postedAt": "3w",
+                "postedDate": "2025-06-06 12:08:51.637 +0000 UTC",
+                "postedDateTimestamp": 1749211731637,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {
+                  "title": "How AI Is Transforming the Gambling Industry in 2025",
+                  "subtitle": "Kuchoriya TechSoft",
+                  "link": "https://www.linkedin.com/pulse/how-ai-transforming-gambling-industry-2025-kuchoriyatechsoft-oertc?trackingId=rmwnIIvHRuGfnbww3%2BbVkg%3D%3D"
+                },
+                "object": {},
+                "author": {
+                  "fullName": "Kuchoriya TechSoft",
+                  "headline": "3,120 followers",
+                  "username": "kuchoriyatechsoft",
+                  "url": "https://www.linkedin.com/company/kuchoriyatechsoft/",
+                  "profilePictures": [
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D560BAQFTz6XLI4F57g/company-logo_400_400/B56Zcg1uvfHUAY-/0/1748602646075/kuchoriyatechsoft_logo?e=1756944000&v=beta&t=ifF-HMhrEUsVjLcyIkMDnIgmXx3ARffm-mSM4ftPDvI"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D560BAQFTz6XLI4F57g/company-logo_200_200/B56Zcg1uvfHUAI-/0/1748602646075/kuchoriyatechsoft_logo?e=1756944000&v=beta&t=-65oaHrAzYztOn_RmXuABDNizr7G3p6_fUpozOHIFsA"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D560BAQFTz6XLI4F57g/company-logo_100_100/B56Zcg1uvfHUAQ-/0/1748602646075/kuchoriyatechsoft_logo?e=1756944000&v=beta&t=6wv3R80uHfUyG_Q2laJieMsQtH5prkXdj1ZAKlj3Nng"
+                    }
+                  ],
+                  "type": "company"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 7,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 7
+                }
+              },
+              {
+                "urn": "7338849331262685185",
+                "url": "https://www.linkedin.com/posts/entelligentsia_the-beautiful-game-reimagined-a-day-in-soccer-activity-7338849331262685185-3hUr",
+                "template": "",
+                "text": "🚀 Just published: What if soccer players could train in the metaverse and fans could experience matches through neural links?\n\n I wrote a near-future story exploring how AI, VR, and AR could completely transform football by 2030. Imagine:\n\n ⚽ Players training against AI-generated opponents that replicate real players' decision-making patterns\n 🧠 Neural-enhanced coaching that strengthens tactical recognition at the brain level🏟️ Stadium experiences where fans see tactical overlays and player\n stats in real-time through AR\n 📺 Neural commentary where broadcasters share players' cognitive decision-making processes\n 🎮 200M fans watching through VR, experiencing matches from any player's perspective\n\n This isn't just sci-fi speculation — it's extrapolating from technologies we're already seeing emerge in sports analytics, VR training, and fan\n engagement.\n\n The story follows Manchester City's Maya Chen through a Champions League final where her AI coach ARIA has analyzed 847,000 hours of Barcelona footage\n to find tactical weaknesses.\n\n What fascinates me: How will the intersection of human intuition and AI precision change not just how we play sports, but how we experience them as\n fans?\n\n Would love your thoughts on where sports technology is heading. Are we ready for neural-linked athletics?\n\n Read the full story: https://lnkd.in/dgAehsd7\n\n #SportseTech #AI #VR #FutureOfSports #Innovation",
+                "postedAt": "2w",
+                "postedDate": "2025-06-12 08:47:09.8 +0000 UTC",
+                "postedDateTimestamp": 1749718029800,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {
+                  "title": "The Beautiful Game Reimagined: A Day in Soccer 2030 - Entelligentsia Blog",
+                  "subtitle": "entelligentsia.in",
+                  "link": "https://entelligentsia.in/blog/the-beautiful-game-reimagined-2030"
+                },
+                "object": {},
+                "author": {
+                  "fullName": "Entelligentsia Solutions LLP",
+                  "headline": "1,485 followers",
+                  "username": "entelligentsia",
+                  "url": "https://www.linkedin.com/company/entelligentsia/",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D0BAQF-Qpx4TCn8Rw/company-logo_100_100/B4DZdf_ChMG8AQ-/0/1749662050851/entelligentsia_logo?e=1756944000&v=beta&t=0q5TKJ6H2Lg7BRxBa0iAfp_-j9k9Rfsc5uFqnB3_3oc"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D0BAQF-Qpx4TCn8Rw/company-logo_400_400/B4DZdf_ChMG8AY-/0/1749662050851/entelligentsia_logo?e=1756944000&v=beta&t=_H8dAW51Soq1sJwFaUWwpILsCLyGRmMeTqkMezp42fE"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D0BAQF-Qpx4TCn8Rw/company-logo_200_200/B4DZdf_ChMG8AI-/0/1749662050851/entelligentsia_logo?e=1756944000&v=beta&t=7Sd-KPSoT_DuMy_Q6WZOSW8P_5bwO2VPT3l5B89CXxM"
+                    }
+                  ],
+                  "type": "company"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 3,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 3
+                }
+              },
+              {
+                "urn": "7343499436028776448",
+                "url": "https://www.linkedin.com/posts/rima-sen-795b902b0_3dannotation-sportsanalytics-performanceanalysis-activity-7343499436028776448-ofut",
+                "template": "",
+                "text": "𝗞𝗲𝘆 𝘁𝗮𝗸𝗲𝗮𝘄𝗮𝘆𝘀 𝗳𝗿𝗼𝗺 𝗮𝗻𝗮𝗹𝘆𝘇𝗶𝗻𝗴 𝗴𝗮𝗺𝗲 𝗳𝗼𝗼𝘁𝗮𝗴𝗲 𝗵𝗶𝗴𝗵𝗹𝗶𝗴𝗵𝘁 𝘁𝗵𝗲 𝗶𝗺𝗽𝗼𝗿𝘁𝗮𝗻𝗰𝗲 𝗼𝗳 𝗱𝗲𝘁𝗮𝗶𝗹𝗲𝗱 𝗽𝗲𝗿𝗳𝗼𝗿𝗺𝗮𝗻𝗰𝗲 𝗮𝗻𝗮𝗹𝘆𝘀𝗶𝘀. 🧐\n\n3D annotation is a game-changer for understanding complex movements and tactics. It provides detailed, actionable insights that can significantly improve sports performance. 🚀\n\n✅ 𝗔𝗰𝗰𝘂𝗿𝗮𝘁𝗲 𝗮𝘁𝗵𝗹𝗲𝘁𝗲 𝘁𝗿𝗮𝗰𝗸𝗶𝗻𝗴 🏃‍♀️\n✅ 𝗘𝗻𝗵𝗮𝗻𝗰𝗲𝗱 𝘁𝗮𝗰𝘁𝗶𝗰𝗮𝗹 𝘂𝗻𝗱𝗲𝗿𝘀𝘁𝗮𝗻𝗱𝗶𝗻𝗴 🧠\n✅ 𝗥𝗲𝗱𝘂𝗰𝗲𝗱 𝗶𝗻𝗷𝘂𝗿𝘆 𝗿𝗶𝘀𝗸𝘀 🤕\n\nThis technique, using 3D boxes around objects in videos, helps AI models understand spatial relationships, leading to better object recognition. This is essential for sports analytics and coaching across various sports. 🏀⚽️🏈🎾\n\nAre you ready to elevate your analysis and gain a competitive edge? 🤔\n\n𝗖𝗼𝗻𝗻𝗲𝗰𝘁 𝘄𝗶𝘁𝗵 𝘂𝘀 𝘁𝗼 𝗲𝘅𝗽𝗹𝗼𝗿𝗲 𝗵𝗼𝘄 𝟯𝗗 𝗮𝗻𝗻𝗼𝘁𝗮𝘁𝗶𝗼𝗻 𝗰𝗮𝗻 𝘁𝗿𝗮𝗻𝘀𝗳𝗼𝗿𝗺 𝘆𝗼𝘂𝗿 𝗮𝗽𝗽𝗿𝗼𝗮𝗰𝗵! 🤝\n https://lnkd.in/gC7aUnRC\n\n#3DAnnotation #SportsAnalytics #PerformanceAnalysis #SportsTech #Coaching #DataScience #AthleteTracking #InjuryPrevention #TacticalAnalysis #Basketball #Soccer #AmericanFootball #Tennis",
+                "postedAt": "4d",
+                "postedDate": "2025-06-25 04:45:01.171 +0000 UTC",
+                "postedDateTimestamp": 1750826701171,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "image": [
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQFhONTwPafBiQ/feedshare-shrink_160/B56ZeMJrHxHEAg-/0/1750403045362?e=1753920000&v=beta&t=pt9-mRLgM9OIqS3U8YfheLDfve2DmU1nr3GIhqdH3pU",
+                    "width": 160,
+                    "height": 160
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQFhONTwPafBiQ/feedshare-shrink_480/B56ZeMJrHxHEAc-/0/1750403045362?e=1753920000&v=beta&t=TUHdPXqapoC8PGLmYipW1urJOlvwzmfZCGjPAEyAcdc",
+                    "width": 480,
+                    "height": 480
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQFhONTwPafBiQ/feedshare-shrink_2048_1536/B56ZeMJrHxHEAs-/0/1750403045442?e=1753920000&v=beta&t=2a_EV07L-uwK4xuf5_IuHfyMeR5H_PfSGIDtg395qAA",
+                    "width": 1472,
+                    "height": 1472
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQFhONTwPafBiQ/feedshare-shrink_20/B56ZeMJrHxHEA0-/0/1750403045362?e=1753920000&v=beta&t=bc8X5FeaMVAStaX2vqwyE3Nze7AuM2WEH4yvW3Rz_hw",
+                    "width": 20,
+                    "height": 20
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQFhONTwPafBiQ/feedshare-shrink_1280/B56ZeMJrHxHEAo-/0/1750403045445?e=1753920000&v=beta&t=n8bnvmNc6gzI27Tu_M5MwmmRQ9ZMQRk0aBuCSToJO_g",
+                    "width": 1280,
+                    "height": 1280
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D5622AQFhONTwPafBiQ/feedshare-shrink_800/B56ZeMJrHxHEAk-/0/1750403045445?e=1753920000&v=beta&t=GRCOV4K34W6xb8yvjdGYzaRqZ6D10tb2J13eDC-C71g",
+                    "width": 800,
+                    "height": 800
+                  }
+                ],
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Rima Sen",
+                  "headline": "SALES INTERN @ AnnotationWorld |",
+                  "username": "rima-sen-795b902b0",
+                  "url": "https://www.linkedin.com/in/rima-sen-795b902b0",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQEuiQf0TVmeoQ/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1732686058986?e=1756944000&v=beta&t=x_tdCEx6yIAS0oTKrYge_DW0aXYYIThQ4raUKE7OiUw"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQEuiQf0TVmeoQ/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1732686058986?e=1756944000&v=beta&t=Y9uV6uOEp2UkNhlpHCol-9WIoVlD5qfRNuA0scL03YY"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQEuiQf0TVmeoQ/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1732686058986?e=1756944000&v=beta&t=4A8spIt0qKPTCpXXU4kxVqQEn6yFkpeMrwQPqcxu3yE"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D5603AQEuiQf0TVmeoQ/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1732686059019?e=1756944000&v=beta&t=9CVxlY5kgNBMBqXcQo4eN-7hKR1BAplN_LswAssW4XM"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 5,
+                  "likeCount": 6,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 6
+                }
+              },
+              {
+                "urn": "7338924309853138944",
+                "url": "https://www.linkedin.com/posts/douglas-plocki-b628b06_aiinsports-aipredictions-futureofsports-activity-7338924309853138944-mUga",
+                "template": "",
+                "text": "Better data.  Better models.  Better bets.  Are you looking in the right places?  Discover how data mining from unexpected sources is transforming sports betting.",
+                "postedAt": "2w",
+                "postedDate": "2025-06-12 13:45:06.089 +0000 UTC",
+                "postedDateTimestamp": 1749735906089,
+                "reposted": true,
+                "resharedPost": {
+                  "isBrandPartnership": false,
+                  "text": "AI’s deep dive into new data sources is revolutionizing betting decisions.  Ready to unlock smarter, more accurate predictions?\n\nPart 2 of Probility AI's 12-part series exploring how AI is driving change in the sports gambling industry: Unlocking the Potential of AI-Driven Betting Decisions.\n\n#AIinSports\n#AIPredictions\n#FutureofSports\n#GamblingTech\n#PredictiveAnalytics",
+                  "author": {},
+                  "company": {
+                    "name": "Probility AI",
+                    "url": "https://www.linkedin.com/company/probilityai/",
+                    "urn": "82350392"
+                  },
+                  "document": {},
+                  "celebration": {},
+                  "poll": {},
+                  "contentType": "",
+                  "article": {
+                    "newsletter": {}
+                  },
+                  "entity": {}
+                },
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Douglas Plocki",
+                  "headline": "CEO | AI-Driven Sports Analytics | Helping Teams & Athletes Maximize Performance | Probility AI, Inc.",
+                  "username": "douglas-plocki-b628b06",
+                  "url": "https://www.linkedin.com/in/douglas-plocki-b628b06",
+                  "profilePictures": [
+                    {
+                      "width": 99,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQF6JCC4qF4SlA/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1696001794020?e=1756944000&v=beta&t=oF0JHu_Wzlg6SkYwRM8XOWzEVyc9JbrICFCH9IWeimw"
+                    },
+                    {
+                      "width": 199,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQF6JCC4qF4SlA/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1696001794020?e=1756944000&v=beta&t=49sVm81z5TaRstz61FplA5qPaU40_JDQ76OUm-uX5KY"
+                    },
+                    {
+                      "width": 399,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQF6JCC4qF4SlA/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1696001794020?e=1756944000&v=beta&t=2goumcdIJ_sNBsw0jhWCyQhYPIdS23rNqAfDHd1z2Uc"
+                    },
+                    {
+                      "width": 776,
+                      "height": 776,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQF6JCC4qF4SlA/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1696001794020?e=1756944000&v=beta&t=1WNTVN8dd0bid6gScLRZDQfVtWdcTvmfyKkKhetejvw"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 5,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 1,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 6
+                }
+              },
+              {
+                "urn": "7344510398412308480",
+                "url": "https://www.linkedin.com/posts/adarsh-narayan-singh_ai-computervision-machinelearning-activity-7344510398412308480-Jb6q",
+                "template": "",
+                "text": "🚀 Project Complete: Smart Stroke Analyzer 🏏\nI’m excited to share that I have successfully built and deployed the Smart Stroke Analyzer, an end-to-end computer vision and machine learning system for cricket stroke analysis.\n⚡ Key Highlights:\n ✅ Real-time ball & batsman detection using YOLOv8\n ✅ Pose estimation with MediaPipe for contact frame analysis\n ✅ Automatic stroke classification using a fine-tuned ResNet18\n ✅ AI-powered suggestions comparing your pose with professional reference poses\n ✅ Interactive feedback dashboard built with Streamlit\n ✅ Generates a professional PDF report with stroke feedback\n ✅ Modular, clean Python codebase — easily extendable\nThis project was a fantastic opportunity to combine:\nObject detection\nPose estimation\nDeep learning\nData visualization\nUI/UX through Streamlit\nI have open-sourced it on GitHub for others to explore, learn, and improve:\n👉 GitHub Repository: https://lnkd.in/gn54FiXG\n💡 I’m incredibly proud of how far this project has come — from an idea to a fully working application. It taught me so much about MLOps, best practices for modular design, and building a real-world, impactful system.\nA huge thanks to everyone who supported and guided me along the way! 🙌\nIf you’re interested in AI for sports analytics, I’d love to connect and discuss further. Feel free to drop a comment or message!\n#AI #ComputerVision #MachineLearning #SportsAnalytics #DeepLearning #YOLO #PoseEstimation #OpenSource #Python #Cricket #techforsports #techforcricket #Opencv #CV #ultralytics #PyTorch #torchvision",
+                "postedAt": "1d",
+                "postedDate": "2025-06-27 23:42:13.386 +0000 UTC",
+                "postedDateTimestamp": 1751067733386,
+                "reposted": false,
+                "video": {
+                  "media": "urn:li:digitalmediaAsset:D5605AQGPYNATXIgiIw",
+                  "entityUrn": "urn:li:digitalmediaAsset:D5605AQGPYNATXIgiIw",
+                  "duration": 60666,
+                  "thumbnails": [
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D5605AQGPYNATXIgiIw/videocover-low/B56ZezxIHvH8CI-/0/1751067727485?e=1751814000&v=beta&t=3TlSEhk8h53XUxU27xkiA930X33BBcXlkS2TYtdW5m8",
+                      "width": 678,
+                      "height": 360
+                    },
+                    {
+                      "url": "https://media.licdn.com/dms/image/v2/D5605AQGPYNATXIgiIw/videocover-high/B56ZezxIHvH8CM-/0/1751067727644?e=1751814000&v=beta&t=Ag2itrsTKQ-oiFhmUfsgyG7ormqantzUThL875AwuoY",
+                      "width": 1356,
+                      "height": 720
+                    }
+                  ],
+                  "video": [
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D5605AQGPYNATXIgiIw/mp4-720p-30fp-crf28/B56ZezxIHvH8B0-/0/1751067730913?e=1751814000&v=beta&t=_w4oRJGCl7RUIAL_xtcWgXYJqnWMX3W5tUSHopbGdl8",
+                      "width": 1358,
+                      "height": 720,
+                      "bitRate": 159720,
+                      "mediaType": "video/mp4"
+                    },
+                    {
+                      "url": "https://dms.licdn.com/playlist/vid/v2/D5605AQGPYNATXIgiIw/mp4-640p-30fp-crf28/B56ZezxIHvH8Bw-/0/1751067729919?e=1751814000&v=beta&t=XInNV-qSH28326SZiAKz1PEclNBwYE6QCyDZVtS_GU0",
+                      "width": 1208,
+                      "height": 640,
+                      "bitRate": 126700,
+                      "mediaType": "video/mp4"
+                    }
+                  ]
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Adarsh Narayan Singh",
+                  "headline": "Web Developer | Information Technology Student at UIET Panjab University, Chandigarh",
+                  "username": "adarsh-narayan-singh",
+                  "url": "https://www.linkedin.com/in/adarsh-narayan-singh",
+                  "profilePictures": [
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHnmipToFwY4A/profile-framedphoto-shrink_400_400/profile-framedphoto-shrink_400_400/0/1709373903210?e=1751814000&v=beta&t=mI9dhPKUShVbHhWImB4seYBf2t4gM3WfykxWCPYspvY"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHnmipToFwY4A/profile-framedphoto-shrink_200_200/profile-framedphoto-shrink_200_200/0/1709373903210?e=1751814000&v=beta&t=XazF0TdjnW6o9Yw5GNKKp8uHd57esEgoZSgTraHg68U"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHnmipToFwY4A/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1709373903210?e=1751814000&v=beta&t=8LLgHZJGFXWfxwVzNQ__4qlXCgrPvK22NlWrGztXzhI"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQHnmipToFwY4A/profile-framedphoto-shrink_100_100/profile-framedphoto-shrink_100_100/0/1709373903210?e=1751814000&v=beta&t=8V3TKxI33GcOCnHXd60RqPk-eRC_r5SSc4qKRsK9Yxc"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 3,
+                  "likeCount": 25,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 1,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 26
+                }
+              },
+              {
+                "urn": "7344858202682871808",
+                "url": "https://www.linkedin.com/posts/seiji-matsuda-4a6003205_sportsanalytics-footballiq-startup-activity-7344858202682871808-Y9Wg",
+                "template": "",
+                "text": "I’m officially going all in on a project I’ve been quietly building for a few months. \n\nI’m developing an advanced football analytics engine designed to quantify decision-making under pressure — something coaches and scouts talk about constantly but haven’t been able to measure until now.\n\nThis is more than just a side project. I’m treating it like a startup, and I’m now looking for talented people who want to help shape it from the ground up.\n\nI’m currently looking for:\n• Data Scientists (experience with CV, ML, or sports data is a plus)\n• Software Developers (especially with frontend/backend or video analytics experience)\n• UI/UX Designers (to help prototype and bring ideas to life visually)\n• Product-minded Engineers or Technical Cofounders\n\nThis is a chance to build something new that could reshape how players are developed, scouted, and evaluated — especially at the youth and college level.\n\nIf you’re interested (or know someone who might be), shoot me a message. I’d love to connect.\n\nLet’s build something that makes talent visible and decision-making measurable. ⚽️💡\n\n#sportsanalytics #footballiq #startup #machinelearning #computervision #ai #footballtech #scouting #dataanalytics #hiring",
+                "postedAt": "15h",
+                "postedDate": "2025-06-28 22:44:16.386 +0000 UTC",
+                "postedDateTimestamp": 1751150656386,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Seiji Matsuda",
+                  "headline": "Founder | Building an AI-powered football analytics engine to quantify decision-making & pressure in soccer | Early-stage product for coaches, scouts, & players",
+                  "username": "seiji-matsuda-4a6003205",
+                  "url": "https://www.linkedin.com/in/seiji-matsuda-4a6003205",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4E03AQG_RNa_tJSx2g/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1708501638237?e=1756944000&v=beta&t=W_Pvyo0KsbsuET41G_o5WHrD6APh247zyfwBnjp-8QQ"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4E03AQG_RNa_tJSx2g/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1708501638237?e=1756944000&v=beta&t=ibBpivkFn-AM_e06q_W0b0gBmZWi2stEZ5gtUMn7-dY"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4E03AQG_RNa_tJSx2g/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1708501638237?e=1756944000&v=beta&t=T-nlSBwKAjRe9Um6J3Qb6jmfJdWM5S2jjY1Dp1HSqlc"
+                    },
+                    {
+                      "width": 661,
+                      "height": 661,
+                      "url": "https://media.licdn.com/dms/image/v2/D4E03AQG_RNa_tJSx2g/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1708501638237?e=1756944000&v=beta&t=5V7pKXbccPwAj1DIhH8vcILc3mEofzZsVCmiGHlFozY"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 6,
+                  "likeCount": 11,
+                  "appreciationCount": 0,
+                  "empathyCount": 1,
+                  "InterestCount": 1,
+                  "praiseCount": 1,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 14
+                }
+              },
+              {
+                "urn": "7336720528038051840",
+                "url": "https://www.linkedin.com/posts/manak-chand_aiingambling-igamingsolutions-responsiblegambling-activity-7336720528038051840-yj2i",
+                "template": "",
+                "text": "🎰 AI’s Game-Changing Impact on the Gambling Industry in 2025 🤖\n\nThe global gambling sector is undergoing a massive shift—AI is no longer optional, it’s a necessity. From personalized player journeys to predictive sportsbook analytics and AI-driven compliance tools, the impact is profound:\n\n✅ 70%+ platforms use AI\n✅ 35% boost in player retention\n✅ 40% drop in fraud losses\n\nAt Kuchoriya TechSoft, we help operators transform with AI-powered gambling and iGaming platforms—from sportsbook optimization to real-time fraud detection, chatbot support, and regulatory compliance.\n\n💡 Our latest whitepaper dives deep into:\n🎮 AI personalization and player engagement\n📊 Predictive analytics in sports betting\n🔐 AI for fraud prevention & KYC/AML\n⚖️ Ethical gaming & regulatory trends\n🌍 Regional adoption insights from the US, UK, Asia, and MENA\n\n🚀 The future? AI + Blockchain + Emotion AI = Transparent, immersive, and responsible gaming.\n\n📞 Let’s talk innovation and explore how we can support your digital transformation.\n\n📩 info@kuchoriyatechsoft.com\n🌐 www.kuchoriyatechsoft.com\n\n📅 Book a call: https://lnkd.in/gGvN-WC3\n\n#AIinGambling #iGamingSolutions #ResponsibleGambling #AITransformation #SportsbookTech #GamblingInnovation #AMLCompliance #AIinSportsBetting #GamblingTechnology #GamblingRegulation #KuchoriyaTechSoft #GamblingSecurity #iGamingDevelopment #CasinoTech #GamblingAI #TechForGambling #CanadaTech #DubaiTech #MiddleEastGaming #AsiaiGaming #UKGamblingCompliance",
+                "postedAt": "3w",
+                "postedDate": "2025-06-06 11:48:03.56 +0000 UTC",
+                "postedDateTimestamp": 1749210483560,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {
+                  "title": "How AI Is Transforming the Gambling Industry in 2025",
+                  "subtitle": "Manak Chand",
+                  "link": "https://www.linkedin.com/pulse/how-ai-transforming-gambling-industry-2025-manak-chand-wb4qc?trackingId=egyfD6u%2FTy2BJPZHT%2BCV%2Fw%3D%3D"
+                },
+                "object": {},
+                "author": {
+                  "fullName": "Manak Chand",
+                  "headline": "CEO at Kuchoriya TechSoft | Technology Innovator | Expert in Websites, Mobile App, ZOHO, Salesforce, SAP, Microsoft Dynamic CRM Development, BlockChain, Game Development | Driving Digital Transformation",
+                  "username": "manak-chand",
+                  "url": "https://www.linkedin.com/in/manak-chand",
+                  "profilePictures": [
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQF3hK96d-GkRQ/profile-framedphoto-shrink_800_800/B56ZXMP18AGUAk-/0/1742888460414?e=1751814000&v=beta&t=kP0-6rrTozzBavZF2pw-yF9UYl6BzsousZxNP-11q6g"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQF3hK96d-GkRQ/profile-framedphoto-shrink_100_100/B56ZXMP18AGUAo-/0/1742888460414?e=1751814000&v=beta&t=9Ua9Jy_TXAX7AHLrvaTuxYqOCuH3fX7CvQRKNv9eiSM"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQF3hK96d-GkRQ/profile-framedphoto-shrink_200_200/B56ZXMP18AGUAc-/0/1742888460414?e=1751814000&v=beta&t=JUxp4-SU_i2N39rxqCB3kBdjFEW7F08BZryYMHXaAKs"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D5635AQF3hK96d-GkRQ/profile-framedphoto-shrink_400_400/B56ZXMP18AGUAg-/0/1742888460387?e=1751814000&v=beta&t=d79YTQ4I1BoVVx7CXLmG_OHmrBfSRMRs_q_5J6spra8"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 0,
+                  "likeCount": 8,
+                  "appreciationCount": 0,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 8
+                }
+              },
+              {
+                "urn": "7343155927845339136",
+                "url": "https://www.linkedin.com/posts/juanfuentesfernandez_pzpn-str-activity-7343155927845339136-K2Pb",
+                "template": "",
+                "text": "📰  Sportstech  Q2 2025 by PZPN Innovation Hub. Download 👇 \n\nMy highlights:\n\n🔹 GenAI leverage: IBM & Ferrari relaunched their F1 fan app with Watsonx, leveraging generative AI and real-time analytics to elevate fan experiences with live telemetry and interactive storytelling\n\n🔹Media-tech: DAZN has unveiled a new AI-powered football statistics platform aimed at enhancing fan engagement through interactive insights. The tool delivers data-rich, real-time visualisations that elevate match-day experiences, providing personalized content and statistical storytelling to users globally\n\n🔹 Record-Breaking Investment: SportsTech M&A reached $68B in 2024 across 486 deals – the highest ever, with momentum carrying into 2025. AI, fan engagement, immersive tech, and Web3 are among the hottest verticals to watch\n\n🔹New Ventures & Tools in Fitness & werables: Strava acquires Runna\n ,a personalized training app, tapping into the global running boom, growing its position as fitness-as-a-service space. Oura launches AI-powered health advisor to deliver hyper-personalized health and wellness recommendations. \n\n🧠⚽️ If you're exploring how AI, data, and immersive tech are shaping the future of sport — this report is one of my favs ❗ \n\nCongrats again Tomasz Kowalczyk and team ✅",
+                "postedAt": "5d",
+                "postedDate": "2025-06-24 06:00:02.438 +0000 UTC",
+                "postedDateTimestamp": 1750744802438,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Juan Fuentes Fernández",
+                  "headline": "LALIGA Delegate to the Nordic countries | angel investor (EBAN Sports co-chair) | board member | instructor sports management | mentor Techstars | international expansion | expert 360 sports",
+                  "username": "juanfuentesfernandez",
+                  "url": "https://www.linkedin.com/in/juanfuentesfernandez",
+                  "profilePictures": [
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQHV6th2DvswrQ/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1720184346102?e=1756944000&v=beta&t=uUbShCD7dQbDH088zJzjfVNI6NEsow5pHjC8is-Vpo8"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQHV6th2DvswrQ/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1720184346102?e=1756944000&v=beta&t=Oe0-JEKcqUDafSMSCImnRO93ek1vMNtJjNjVpF8HuHw"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQHV6th2DvswrQ/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1720184346102?e=1756944000&v=beta&t=U5pBTkZWsooBevbS6DJU2R452-OVJ70dxwUUZXvOke8"
+                    },
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D4D03AQHV6th2DvswrQ/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1720184346144?e=1756944000&v=beta&t=Qh7s_cDwiGtcc8luqoGuNYLiUbRfMntfr1kGLw0gDrU"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 15,
+                  "likeCount": 54,
+                  "appreciationCount": 1,
+                  "empathyCount": 3,
+                  "InterestCount": 2,
+                  "praiseCount": 1,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 61
+                }
+              },
+              {
+                "urn": "7342831679083888640",
+                "url": "https://www.linkedin.com/posts/association-of-sports-performance-analysts-aspa-5b3276345_aspajobs-performanceanalysis-datascience-activity-7342831679083888640-lv8C",
+                "template": "",
+                "text": "📣 Monday Job Share – Part 2: Performance Analysis & Data Science Roles\n🚀 Ready to level up your career in sports performance or analytics?\nLast week on the ASPA Jobs Board, we saw fresh roles in:\n\n📹 Performance Analysis (Academy & 1st Team)\n📊 Data Science & Sport Tech Innovation\n📈 Tactical Insight & Video Coaching\n🤖 AI, Tracking Data & Match Modelling\n\nFrom pitch-side to Python, there’s a role for every type of analyst.\n\nNational Hockey League (NHL) | Research & Development Analyst\nParis Saint-Germain | Data Scientist\nBrighton & Hove Albion Football Club | Performance Scientist \nBrighton & Hove Albion Football Club | Medical Data Analyst\nNike | Performance Lead (Nike Sports Research Lab)\nBirmingham City FC | Lead Performance Analyst (Women's)\nHull City | Senior First Team Analyst\nCrawley Town Football Club | Head of Performance Analysis \nDerby County Football Club | Women's First Team Analyst \n\n👉 Explore the full list via https://theaspa.org/jobs\n#ASPAJobs #PerformanceAnalysis #DataScience #SportAnalytics #FootballJobs #SportTech #TacticalAnalysis #DataInSport #VideoAnalysis #AIInSport #SportCareers",
+                "postedAt": "6d",
+                "postedDate": "2025-06-23 08:31:35.509 +0000 UTC",
+                "postedDateTimestamp": 1750667495509,
+                "reposted": false,
+                "video": {
+                  "thumbnails": null,
+                  "video": null
+                },
+                "image": [
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D4E22AQGtt0NIdaloeA/feedshare-shrink_2048_1536/B4EZeb6f.QHcA0-/0/1750667494588?e=1753920000&v=beta&t=7X-SrzP3TsoaQAtI6DdjWLwvuaFkFsWyM9TcG6_k81Q",
+                    "width": 1200,
+                    "height": 1200
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D4E22AQGtt0NIdaloeA/feedshare-shrink_160/B4EZeb6f.QHcAo-/0/1750667494519?e=1753920000&v=beta&t=UfDxYZw0On4VxNTRmFS35YPqkSz6_L3tQ7U6xK-ODvg",
+                    "width": 160,
+                    "height": 160
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D4E22AQGtt0NIdaloeA/feedshare-shrink_800/B4EZeb6f.QHcAs-/0/1750667494519?e=1753920000&v=beta&t=qAdvZkj9u2sU2KVjXgEuTmgQR8WIkf8F_v9idINiCgs",
+                    "width": 800,
+                    "height": 800
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D4E22AQGtt0NIdaloeA/feedshare-shrink_20/B4EZeb6f.QHcA8-/0/1750667494519?e=1753920000&v=beta&t=Elxb_pxAxoEZiTjY36psY6cRHgNFuio2cNpbE2V6SGE",
+                    "width": 20,
+                    "height": 20
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D4E22AQGtt0NIdaloeA/feedshare-shrink_1280/B4EZeb6f.QHcAw-/0/1750667494543?e=1753920000&v=beta&t=_ulkAkBay_jTCbsbYLzLzTsG-kCa5ogmJZqgfgzLgEI",
+                    "width": 1200,
+                    "height": 1200
+                  },
+                  {
+                    "url": "https://media.licdn.com/dms/image/v2/D4E22AQGtt0NIdaloeA/feedshare-shrink_480/B4EZeb6f.QHcAk-/0/1750667494543?e=1753920000&v=beta&t=LUJS9UD7Cktva-s6AbrquHuHXgg1b-RBLzKeRQVzIr0",
+                    "width": 480,
+                    "height": 480
+                  }
+                ],
+                "entity": {},
+                "article": {},
+                "object": {},
+                "author": {
+                  "fullName": "Association of Sports Performance Analysts (ASPA)",
+                  "headline": "Driving excellence in applied sports performance analysis. Where community creates growth! #theASPA",
+                  "username": "association-of-sports-performance-analysts-aspa-5b3276345",
+                  "url": "https://www.linkedin.com/in/association-of-sports-performance-analysts-aspa-5b3276345",
+                  "profilePictures": [
+                    {
+                      "width": 800,
+                      "height": 800,
+                      "url": "https://media.licdn.com/dms/image/v2/D4E03AQH5Y_1eVE09eA/profile-displayphoto-shrink_800_800/B4EZRSsCEPHAAc-/0/1736554062688?e=1756944000&v=beta&t=iXvvua2aZXAUFYsB7KX9U_nMw13zIuZP42kR7N3loGc"
+                    },
+                    {
+                      "width": 100,
+                      "height": 100,
+                      "url": "https://media.licdn.com/dms/image/v2/D4E03AQH5Y_1eVE09eA/profile-displayphoto-shrink_100_100/B4EZRSsCEPHAAU-/0/1736554062688?e=1756944000&v=beta&t=yrAxSAhihzgEssXTIlxp3s6_F7iSBjIdiDxmePWpP2Q"
+                    },
+                    {
+                      "width": 400,
+                      "height": 400,
+                      "url": "https://media.licdn.com/dms/image/v2/D4E03AQH5Y_1eVE09eA/profile-displayphoto-shrink_400_400/B4EZRSsCEPHAAg-/0/1736554062688?e=1756944000&v=beta&t=DvglxdqqFkqj_IsWiJSl8_QIoBed8S17odIwIvpNxBw"
+                    },
+                    {
+                      "width": 200,
+                      "height": 200,
+                      "url": "https://media.licdn.com/dms/image/v2/D4E03AQH5Y_1eVE09eA/profile-displayphoto-shrink_200_200/B4EZRSsCEPHAAY-/0/1736554062677?e=1756944000&v=beta&t=ih7Bebv2JpVfiMi5WtyzuKrXEHnUYuqmuzHqcOO8Yqc"
+                    }
+                  ],
+                  "type": "user"
+                },
+                "socialActivityCountsInsight": {
+                  "numComments": 2,
+                  "likeCount": 22,
+                  "appreciationCount": 1,
+                  "empathyCount": 0,
+                  "InterestCount": 0,
+                  "praiseCount": 0,
+                  "funnyCount": 0,
+                  "maybeCount": 0,
+                  "totalReactionCount": 23
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates within worflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates within worflow": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates from previous executions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates from previous executions": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "38fb73d7-ae68-4642-a6e0-8fde200ded88",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c8c937f62d7bb765a9648f284331bfaaad07a21b568a7b3af86bf65cfd8d8986"
+  },
+  "id": "tTegQGlvBPhUmejQ",
+  "tags": []
+}
