@@ -1,0 +1,627 @@
+{
+  "name": "Automated Viral Tech Reels",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "subreddit": "technology",
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.reddit",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -180
+      ],
+      "id": "c152b55d-9fcf-4ef3-9635-fb0b1924c952",
+      "name": "Reddit",
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "GJGJ5jHmeQWJZWvy",
+          "name": "Reddit account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        620,
+        480
+      ],
+      "id": "88790052-2c49-4d6a-a4d6-931f4dd00e66",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "FQP5N3hJ3oAH06vd",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Initialize an empty array to hold the formatted strings\nlet formattedPosts = [];\n\n// Iterate over each item (post) in the input data\nfor (let i = 0; i < items.length; i++) {\n  // Extract the desired fields\n  let title = items[i].json.title || '';\n  let selftext = items[i].json.selftext || '';\n  let permalink = items[i].json.permalink || '';\n\n  // Construct the formatted string\n  let formattedPost = `###reddit${i + 1}\\nTitle: ${title}\\nSelftext: ${selftext}\\nLink: https://www.reddit.com${permalink}`;\n\n  // Add the formatted string to the array\n  formattedPosts.push(formattedPost);\n}\n\n// Join all formatted strings into a single output with two newlines separating each post\nlet output = formattedPosts.join('\\n\\n');\n\n// Return the result as a single item\nreturn [{ json: { mergedOutput: output } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        -180
+      ],
+      "id": "a986bca6-39dc-47f7-89d7-35bcc5299d24",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool gives you access to the Tavily API to run web search queries. You can use this tool to run generative AI search, and find url sources to use in the webscraper tool. be sure to ask for the complete urls to relevant web sources in your query.\n",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "Authorization",
+              "valueProvider": "fieldValue",
+              "value": "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"
+            },
+            {
+              "name": "Content-Type",
+              "valueProvider": "fieldValue",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"query\": \"{query}\"\n}\n",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "=query",
+              "description": "The query used for the search",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "20354864-facc-440d-8264-107390e21d1c",
+      "name": "Tavily Search3",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        380,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://trendly.p.rapidapi.com/historical",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "trendly.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": ""
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($fromAI('JSON', '', 'json')) }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        240
+      ],
+      "id": "8eacebb0-19c2-4953-9340-de9637029a73",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mergedOutput }}",
+        "options": {
+          "systemMessage": "=🧠 Prompt: Tech Content Reels Generator\n\nYou are a viral content strategist who specializes in creating short-form video ideas (Instagram Reels, TikTok, YouTube Shorts) based on the latest emerging tech trends and news. I’ll provide you with Reddit posts that highlight recent developments in tech.\n\nYour job is to:\n\nRead the Reddit content and extract the most engaging, trending, or controversial tech insights. Use the tabily tool to access Tavily API to run web search queries. You can use this tool to run generative AI search, and find url sources to use in the webscraper tool. be sure to ask for the complete urls to relevant web sources in your query.\n\n\nGenerate the top 5 short-form content ideas I can turn into Reels or TikToks.\n\nEach idea should be:\n\nScroll-stopping and hook-driven (the first 3 seconds must trigger curiosity).\n\nTimely (based on fresh news or trends).\n\nExplained simply for a wide audience, while still sounding insightful.\n\nAble to be executed in under 60 seconds.\n\nBonus if the idea encourages viewer interaction (e.g., “Would you use this?”, “Crazy or genius?”, “Is this the future?”).\n\nOutput format:\n\nTitle / Hook (under 10 words)\n\nConcept Summary (1–2 sentences max)\n\nSuggested CTA (comment, like, follow, etc.)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        180,
+        -180
+      ],
+      "id": "82b0a1df-64a9-4d01-b07a-1cef67947db8",
+      "name": "Get Ideas"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Connect with the attached serp api tool to find google trends for the 5 viral trends which you got. YOU need to check the trends and pick the top 2 from the 5 sent\n\nHere are they -  {{ $json.output }}\n\n\nYou can access the tool only 10 times\n\n\nEnsure you send your response to the tool in this manner - \n---\n{\n  \"keywords\": [\n    \"France\",\n    \"Italy\",\n    \"Germany\"\n  ],\n  \"start\": \"2020-05-01T00:43:37+0100\",\n  \"country\": \"France\",\n  \"region\": \"Alsace\",\n  \"category\": \"\",\n  \"gprop\": \"\"\n}\n---\nKnow that above json is an example, you need to change some variables. Also 'start' is very important too",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -180
+      ],
+      "id": "596820c1-90c8-4fb7-b0a3-5a6bb65263e4",
+      "name": "Get Trends"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Business ideas - {{ $('Get Ideas').item.json.output }}\n\nGoogle trends - {{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a viral short-form content strategist with a deep understanding of what makes people stop scrolling and engage. I’ll provide you with tech news ideas gathered from Reddit, along with Google Trends volume data for relevant keywords.\n\nYour job is to:\n\nRefine and enhance these raw ideas into scroll-stopping short-form content plans.\n\nThink like a creator optimizing for virality, clarity, and simplicity, while keeping the news fresh and relevant.\n\nEnsure each idea is timely, snackable, and can be produced under 60 seconds.\n\nOutput your results in JSON using this structure:\n\njson\n{\n  \"video_ideas\": [\n    {\n      \"heading\": \"Catchy hook that grabs attention\",\n      \"idea_summary\": \"One-liner that summarizes the core idea of the video.\",\n      \"video_script_outline\": \"A quick breakdown of the 3–5 sentence story arc or sequence for the video. Make it suitable for Reels/TikTok with pacing and storytelling in mind.\",\n      \"format_style\": \"Style of video (e.g., Facecam commentary, Screen recording + voiceover, News headline slideshow, Meme reaction, etc.)\",\n      \"viral_trigger\": \"What makes this go viral (e.g., shock, novelty, controversy, nostalgia, etc.)\",\n      \"google_trends_opportunity\": \"How the search trend supports this content (e.g., recent spike in search volume, breakout keyword, seasonal trend)\",\n      \"call_to_action\": \"What CTA should be used to boost engagement (e.g., Comment ‘Yes’ if you’d try this / Follow for more tech drops / Which side are you on?)\"\n    },\n    {\n      \"heading\": \"Another catchy idea...\",\n      ...\n    }\n  ]\n}\nLet me know if you want me to generate sample content using this format, or help automate this with n8n + Reddit + Google Trends."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        -180
+      ],
+      "id": "a7825a29-6e08-48fd-be98-d5b0473a38aa",
+      "name": "Make Sense Of Ideas"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1jlBicAbvp77TCTjAkmj5_RFmWJDaM9lt1DwGKUKogWc",
+          "mode": "list",
+          "cachedResultName": "Viral Reels Ideas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jlBicAbvp77TCTjAkmj5_RFmWJDaM9lt1DwGKUKogWc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jlBicAbvp77TCTjAkmj5_RFmWJDaM9lt1DwGKUKogWc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd') }}",
+            "time": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('HH:mm:ss') }}",
+            "heading": "={{ $json.heading }}",
+            "idea_summary": "={{ $json.idea_summary }}",
+            "video_script_outline": "={{ $json.video_script_outline }}",
+            "format_style": "={{ $json.format_style }}",
+            "viral_trigger": "={{ $json.viral_trigger }}",
+            "google_trends_opportunity": "={{ $json.google_trends_opportunity }}",
+            "call_to_action": "={{ $json.call_to_action }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "heading",
+              "displayName": "heading",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "idea_summary",
+              "displayName": "idea_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "video_script_outline",
+              "displayName": "video_script_outline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "format_style",
+              "displayName": "format_style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "viral_trigger",
+              "displayName": "viral_trigger",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "google_trends_opportunity",
+              "displayName": "google_trends_opportunity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "call_to_action",
+              "displayName": "call_to_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1620,
+        -180
+      ],
+      "id": "7443d0b7-28d1-45ad-a58a-f55ddf71c9de",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mdCpFUN2LCKinWZE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## AI makes a sense of the ideas and gives top 3",
+        "height": 300,
+        "width": 420,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        100,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "aa8581bf-3856-497c-944d-61fc282c0c10",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## AI finds google trends data for the top 3",
+        "height": 300,
+        "width": 360,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        600,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "5507822c-da4b-49f8-885b-4ddc8a142104",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Sends final ideas to Google SHeets",
+        "height": 300,
+        "width": 820,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1040,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "70391524-2f84-4893-a29c-61fb5848d0a6",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -480,
+        -180
+      ],
+      "id": "51854413-1421-4c4b-9b36-4bbd34e07e61",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        40
+      ],
+      "id": "6ab4139a-1333-42af-92d4-2ffed3d40e87",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "FQP5N3hJ3oAH06vd",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data\nconst inputItem = items[0].json;\n\n// Case 1: If the input has a \"video_ideas\" array directly\nif (inputItem.video_ideas && Array.isArray(inputItem.video_ideas)) {\n  // Return each video idea as a separate item without the wrapper\n  return inputItem.video_ideas.map(idea => ({ json: idea }));\n}\n\n// Case 2: If the input has an \"output\" field with markdown JSON\nelse if (inputItem.output) {\n  // Extract the output string\n  const outputString = inputItem.output;\n  \n  // Extract just the JSON content using regex\n  const jsonMatch = outputString.match(/```json\\n([\\s\\S]*?)\\n```/);\n  \n  if (jsonMatch && jsonMatch[1]) {\n    try {\n      // Try to parse the extracted JSON\n      const jsonString = jsonMatch[1];\n      const parsedData = JSON.parse(jsonString);\n      \n      // Check if ideas array exists and has items\n      if (parsedData.ideas && Array.isArray(parsedData.ideas) && parsedData.ideas.length > 0) {\n        // Return each idea as a separate item\n        return parsedData.ideas.map(idea => ({ json: idea }));\n      } \n      // Check if video_ideas array exists and has items\n      else if (parsedData.video_ideas && Array.isArray(parsedData.video_ideas) && parsedData.video_ideas.length > 0) {\n        // Return each video idea as a separate item\n        return parsedData.video_ideas.map(idea => ({ json: idea }));\n      }\n      // If no ideas array found, return the whole object as a single item\n      else {\n        return [{ json: parsedData }];\n      }\n    } catch (error) {\n      return [{ \n        json: { \n          error: 'Failed to parse JSON', \n          message: error.message\n        } \n      }];\n    }\n  } else {\n    return [{ \n      json: { \n        error: 'Could not find JSON content in the expected format'\n      } \n    }];\n  }\n}\n\n// Case 3: If neither condition is met\nelse {\n  return [{ \n    json: { \n      error: 'Input format not recognized. Expected either video_ideas array or output with markdown JSON.'\n    } \n  }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        -180
+      ],
+      "id": "43a83ace-3eb5-481f-a608-391481a8bb4b",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "q": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_Query__q_', ``, 'string') }}",
+        "location": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Location__location_', ``, 'string') }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApiTool",
+      "typeVersion": 1,
+      "position": [
+        800,
+        40
+      ],
+      "id": "98fb586b-d743-4b26-a673-ef3180e33b5d",
+      "name": "SerpApi1",
+      "credentials": {
+        "serpApi": {
+          "id": "YuTitaP11wNptoTt",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Get ideas from r/technology",
+        "height": 300,
+        "width": 380,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -320,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "dd58f617-65e9-415c-ac99-37dcd7f99003",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger": [
+      {
+        "json": {
+          "timestamp": "2025-07-07T00:00:12.016-04:00",
+          "Readable date": "July 7th 2025, 12:00:12 am",
+          "Readable time": "12:00:12 am",
+          "Day of week": "Monday",
+          "Year": "2025",
+          "Month": "July",
+          "Day of month": "07",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "12",
+          "Timezone": "America/New_York (UTC-04:00)"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Reddit": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Get Ideas",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Make Sense Of Ideas",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Get Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Search3": {
+      "ai_tool": [
+        [
+          {
+            "node": "Get Ideas",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Get Ideas": {
+      "main": [
+        [
+          {
+            "node": "Get Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Trends": {
+      "main": [
+        [
+          {
+            "node": "Make Sense Of Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make Sense Of Ideas": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Reddit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Get Trends",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpApi1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Get Trends",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2e352eb4-075e-481c-8188-dd5e68aa862b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c8c937f62d7bb765a9648f284331bfaaad07a21b568a7b3af86bf65cfd8d8986"
+  },
+  "id": "OglMbuTev6mvHwSy",
+  "tags": []
+}
