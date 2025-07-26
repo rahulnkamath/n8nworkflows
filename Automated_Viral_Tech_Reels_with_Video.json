@@ -1,0 +1,1286 @@
+{
+  "name": "Automated Viral Tech Reels with Video",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "subreddit": "technology",
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.reddit",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        -180
+      ],
+      "id": "ebd7ff9b-4dd2-4026-a107-b568c9086ac1",
+      "name": "Reddit",
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "GJGJ5jHmeQWJZWvy",
+          "name": "Reddit account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mergedOutput }}",
+        "options": {
+          "systemMessage": "=🧠 Prompt: Tech Content Reels Generator\n\nYou are a viral content strategist who specializes in creating short-form video ideas (Instagram Reels, TikTok, YouTube Shorts) based on the latest emerging tech trends and news. I’ll provide you with Reddit posts that highlight recent developments in tech.\n\nYour job is to:\n\nRead the Reddit content and extract the most engaging, trending, or controversial tech insights. You must use the perplexity tool to access Perplexity API to get the latest updates on this topic. You can use this tool to run generative AI search, and find latest info on this topic.\n\nWhen you call the tool use this in body\n\n{\n  \"model\": \"sonar-pro\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"FIll this yourself\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"FIll this based on the title\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"top_p\": 1,\n  \"top_k\": 40,\n  \"stream\": false\n}\n\nGenerate the top 5 short-form content ideas I can turn into Reels or TikToks.\n\nEach idea should be:\n\nScroll-stopping and hook-driven (the first 3 seconds must trigger curiosity).\n\nTimely (based on fresh news or trends).\n\nExplained simply for a wide audience, while still sounding insightful.\n\nAble to be executed in under 60 seconds.\n\nBonus if the idea encourages viewer interaction (e.g., “Would you use this?”, “Crazy or genius?”, “Is this the future?”).\n\nOutput format:\n\nTitle / Hook (under 10 words)\n\nConcept Summary (1–2 sentences max)\n\nSuggested CTA (comment, like, follow, etc.)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        320,
+        -180
+      ],
+      "id": "4472a240-b068-4d20-992d-55e4a2dc616a",
+      "name": "Get Ideas"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You're an AI Agent tasked with finding the top most promising viral content ideas from a list of 5 candidates using Google Trends data via a SERP API tool (with a usage limit of 5 calls total).\n\nINSTRUCTIONS TO FOLLOW:\n\nYou are given a list of 5 raw content ideas in {{ $json.output }}.\n\nFor each of the 5 ideas:\n\nExtract relevant keywords or phrases that represent the core topic.\n\nUse one SERP API call per idea to fetch Google Trends or search volume data.\n\nBased on the comparison, pick the most promising ideas using this logic (Only 1):\n\nStrong recent upward trend\n\nBreakout or rising interest keywords\n\nHigh relevance to tech and digital-native audiences\n\nOptional: If trends are similar, prefer novelty over saturated topics\n\nYou can only use the SERP API tool 10 times max — use 1 call per idea only.\n\n✅ Output Format (JSON)\nReturn exactly 1 items in a JSON list, each with enriched data as below:\n\n\n  {\n    \"selected_idea\": \"Short title or keyword of the idea selected\",\n    \"description\": \"Detailed description in 40 words about the idea\",\n    \"search_trend_data\": {\n      \"trend_score\": \"Qualitative tag (e.g., breakout, rising, flat, declining)\",\n      \"search_volume_estimate\": \"Rough search volume or relative interest\",\n      \"related_keywords\": [\"keyword1\", \"keyword2\"]\n    },\n    \"reason_for_selection\": \"Brief reason why this was selected (e.g., breakout trend + tech relevance)\"\n  }\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        900,
+        -180
+      ],
+      "id": "3815721c-3942-44a3-ac14-416b56a0a132",
+      "name": "Get Trends"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Google trends video ideas - {{ $('Get Trends').item.json.output }}\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a viral short-form video strategist. I will provide you with a tech news idea or trend topic along with Google Trends or Reddit data. Your job is to turn this into a scroll-stopping 24-second vertical video script, optimized for Instagram Reels, YouTube Shorts, and TikTok.\n\nBreak the video into 3 parts of 8 seconds each\n\n🎯 Output Requirements:\nReturn a JSON object with the following structure as mentioned in the structured parser tool attached.\n\n🧠 Creative Guidelines:\nMake the hook punchy. Think “WTF?”, “You won’t believe this,” or “Big tech just did what?”\n\nKeep the tone casual but smart — Gen Z/Millennial audience.\n\nMake sure all 3 lines (spoken_script) can be said naturally in under 8 seconds each.\n\nVisual descriptions should help another AI agent generate Google Veo3 prompts later.\n\nOnce you receive a tech idea + trend data from me, respond strictly in that format."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        280
+      ],
+      "id": "1f634e6e-6027-49f2-b0b0-03afee7b3e54",
+      "name": "Make Sense Of Ideas"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1jlBicAbvp77TCTjAkmj5_RFmWJDaM9lt1DwGKUKogWc",
+          "mode": "list",
+          "cachedResultName": "Viral Reels Ideas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jlBicAbvp77TCTjAkmj5_RFmWJDaM9lt1DwGKUKogWc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jlBicAbvp77TCTjAkmj5_RFmWJDaM9lt1DwGKUKogWc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd') }}",
+            "time": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('HH:mm:ss') }}",
+            "heading": "={{ $json.heading }}",
+            "idea_summary": "={{ $json.idea_summary }}",
+            "video_script_outline": "={{ $json.video_script_outline }}",
+            "format_style": "={{ $json.format_style }}",
+            "viral_trigger": "={{ $json.viral_trigger }}",
+            "google_trends_opportunity": "={{ $json.google_trends_opportunity }}",
+            "call_to_action": "={{ $json.call_to_action }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "heading",
+              "displayName": "heading",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "idea_summary",
+              "displayName": "idea_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "video_script_outline",
+              "displayName": "video_script_outline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "format_style",
+              "displayName": "format_style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "viral_trigger",
+              "displayName": "viral_trigger",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "google_trends_opportunity",
+              "displayName": "google_trends_opportunity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "call_to_action",
+              "displayName": "call_to_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        2660,
+        1220
+      ],
+      "id": "c3c717bd-ebce-4392-9100-eb66a9cf875c",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mdCpFUN2LCKinWZE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## AI makes a sense of the ideas and gives top 5 ",
+        "height": 420,
+        "width": 500,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        200,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "dc1f860d-c256-4e11-a8fe-b9531b78a901",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## AI finds google trends data for the top idea",
+        "height": 420,
+        "width": 660,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        720,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "83fd3d89-edb7-433e-a869-c3e1fc7afc0a",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Decides the 24 second script for the idea",
+        "height": 560,
+        "width": 520,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -320,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "d749a1c1-cdcc-4475-ada1-6bd2f494b4ed",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        120
+      ],
+      "id": "64177da0-3510-4d11-a92f-9ed5bf769d4c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data\nconst inputItem = items[0].json;\n\n// Case 1: If the input has a \"video_ideas\" array directly\nif (inputItem.video_ideas && Array.isArray(inputItem.video_ideas)) {\n  // Return each video idea as a separate item without the wrapper\n  return inputItem.video_ideas.map(idea => ({ json: idea }));\n}\n\n// Case 2: If the input has an \"output\" field with markdown JSON\nelse if (inputItem.output) {\n  // Extract the output string\n  const outputString = inputItem.output;\n  \n  // Extract just the JSON content using regex\n  const jsonMatch = outputString.match(/```json\\n([\\s\\S]*?)\\n```/);\n  \n  if (jsonMatch && jsonMatch[1]) {\n    try {\n      // Try to parse the extracted JSON\n      const jsonString = jsonMatch[1];\n      const parsedData = JSON.parse(jsonString);\n      \n      // Check if ideas array exists and has items\n      if (parsedData.ideas && Array.isArray(parsedData.ideas) && parsedData.ideas.length > 0) {\n        // Return each idea as a separate item\n        return parsedData.ideas.map(idea => ({ json: idea }));\n      } \n      // Check if video_ideas array exists and has items\n      else if (parsedData.video_ideas && Array.isArray(parsedData.video_ideas) && parsedData.video_ideas.length > 0) {\n        // Return each video idea as a separate item\n        return parsedData.video_ideas.map(idea => ({ json: idea }));\n      }\n      // If no ideas array found, return the whole object as a single item\n      else {\n        return [{ json: parsedData }];\n      }\n    } catch (error) {\n      return [{ \n        json: { \n          error: 'Failed to parse JSON', \n          message: error.message\n        } \n      }];\n    }\n  } else {\n    return [{ \n      json: { \n        error: 'Could not find JSON content in the expected format'\n      } \n    }];\n  }\n}\n\n// Case 3: If neither condition is met\nelse {\n  return [{ \n    json: { \n      error: 'Input format not recognized. Expected either video_ideas array or output with markdown JSON.'\n    } \n  }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        1060
+      ],
+      "id": "64a0d163-47c5-402a-9fe8-7b352eb73bba",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "q": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_Query__q_', ``, 'string') }}",
+        "location": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Location__location_', ``, 'string') }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApiTool",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        0
+      ],
+      "id": "2992131b-ac5b-42df-a5e5-027b5bbfe5a2",
+      "name": "SerpApi1",
+      "credentials": {
+        "serpApi": {
+          "id": "YuTitaP11wNptoTt",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Get ideas from r/technology",
+        "height": 420,
+        "width": 480,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -320,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "6aa571dd-23ef-404b-8d69-d6a7ba2ec818",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"video_ideas\": [\n      {\n        \"heading\": \"Catchy hook that grabs attention\",\n        \"idea_summary\": \"One-liner that summarizes the core idea of the video.\",\n        \"video_script_24s\": {\n          \"hook_0_8s\": {\n            \"description\": \"Describe the visual or concept happening on top during the first 8 seconds.\",\n            \"spoken_script\": \"Exact line the user (facecam bottom) should say in the first 8s.\"\n          },\n          \"content_1_8s\": {\n            \"description\": \"Describe what visual or info is displayed in the middle 8 seconds.\",\n            \"spoken_script\": \"Exact line the user should say to add context, insight, or facts.\"\n          },\n          \"content_2_8s\": {\n            \"description\": \"Describe the final twist, takeaway, or punch in the top video layer.\",\n            \"spoken_script\": \"Final statement or opinion the user should say.\"\n          }\n        },\n        \"format_style\": \"e.g., Facecam commentary, screen + voiceover, headline reaction, meme-style commentary\",\n        \"viral_trigger\": \"e.g., shock, controversy, nostalgia, humor, urgency\",\n        \"google_trends_opportunity\": \"Brief note on why this is timely — breakout trend, controversy, high search spike, etc.\",\n        \"call_to_action\": \"What should the viewer do? (e.g., Follow for more tech takes / Comment your take / Tag someone who needs this)\"\n      }\n    ]\n  }\n]\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -120,
+        500
+      ],
+      "id": "3afd03fe-d12d-4550-a067-262329cfd9f3",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "[\"Video Ideas\"][0].video_script_24s",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        20,
+        480
+      ],
+      "id": "ac84d501-df41-488a-b047-65a826c41d84",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "50d3e37b-2d2d-4c45-b0cc-a067b1d61dd1",
+              "name": "Prompt",
+              "value": "={{ $json.part_1 }}",
+              "type": "string"
+            },
+            {
+              "id": "1781c768-299f-4292-849f-c60696538d5d",
+              "name": "Heading",
+              "value": "={{ $json.heading }}",
+              "type": "string"
+            },
+            {
+              "id": "a94d9bc8-b16f-4b1a-af42-10b563090040",
+              "name": "Type",
+              "value": "Part1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        760,
+        240
+      ],
+      "id": "5a71c197-0e9a-4e85-b699-a36ef42c809d",
+      "name": "Hook Prompt"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c8edcb92-18d4-4b43-ab25-5cdceb731257",
+              "name": "Prompt",
+              "value": "={{ $json.part_2 }}",
+              "type": "string"
+            },
+            {
+              "id": "391f232e-63a2-4790-aa30-28c5a3c52ed9",
+              "name": "Heading",
+              "value": "={{ $json.heading }}",
+              "type": "string"
+            },
+            {
+              "id": "e4ffb0d8-740b-458a-b2bf-073ecc21091d",
+              "name": "Type",
+              "value": "Part2",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        760,
+        420
+      ],
+      "id": "f29ffdf8-2c77-41bc-9de5-16208af257cc",
+      "name": "Middle Prompt"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "L7dKmCryBsY4stSQ",
+          "mode": "list",
+          "cachedResultName": "Veo3 Video Generation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        940,
+        240
+      ],
+      "id": "b06a7480-dded-4263-8d36-725d477f67f5",
+      "name": "Hook Video Generation"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "L7dKmCryBsY4stSQ",
+          "mode": "list",
+          "cachedResultName": "Veo3 Video Generation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        940,
+        420
+      ],
+      "id": "45177e08-9ad7-4ed3-8a02-613395079757",
+      "name": "Middle Video Generation"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c8edcb92-18d4-4b43-ab25-5cdceb731257",
+              "name": "Prompt",
+              "value": "={{ $json.part_3 }}",
+              "type": "string"
+            },
+            {
+              "id": "391f232e-63a2-4790-aa30-28c5a3c52ed9",
+              "name": "Heading",
+              "value": "={{ $json.heading }}",
+              "type": "string"
+            },
+            {
+              "id": "e4ffb0d8-740b-458a-b2bf-073ecc21091d",
+              "name": "Type",
+              "value": "Part3",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        760,
+        580
+      ],
+      "id": "f118603f-609e-49fd-8f29-f29c04ba041c",
+      "name": "Last Prompt"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "L7dKmCryBsY4stSQ",
+          "mode": "list",
+          "cachedResultName": "Veo3 Video Generation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        940,
+        580
+      ],
+      "id": "92fe69ec-49f2-4b01-8852-640713cd4b8d",
+      "name": "Last Video Generation"
+    },
+    {
+      "parameters": {
+        "content": "## Decides the Google Veo Prompts for each of the Three 8-second videos",
+        "height": 560,
+        "width": 420,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        220,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "78a58d72-a238-4874-991e-b52683d13667",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all 3 output items from previous node (connected input)\nconst input = $input.all();\n\n// Get metadata from \"Edit Fields\" node\nconst editFields = $('Set Video Ideas').item.json;\nconst videoIdea = editFields[\"Video Ideas\"][0];\n\n// Validate input\nif (input.length < 3) {\n  throw new Error(\"Expected at least 3 input items.\");\n}\n\n// Build the result object\nconst result = {\n  part_1: input[0].json.output,\n  part_2: input[1].json.output,\n  part_3: input[2].json.output,\n  heading: videoIdea.heading,\n  ideaSummary: videoIdea.idea_summary,\n  hookScript: videoIdea.video_script_24s.hook_0_8s.spoken_script,\n  content1Script: videoIdea.video_script_24s.content_1_8s.spoken_script,\n  content2Script: videoIdea.video_script_24s.content_2_8s.spoken_script,\n  formatStyle: videoIdea.format_style,\n  viralTrigger: videoIdea.viral_trigger,\n  googleTrendsOpportunity: videoIdea.google_trends_opportunity,\n  callToAction: videoIdea.call_to_action\n  \n};\n\nreturn [\n  {\n    json: result,\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        520
+      ],
+      "id": "77be511a-0a8b-49ed-a57f-5f83c21e268b",
+      "name": "Data Transformation"
+    },
+    {
+      "parameters": {
+        "content": "## Generates Videos and Stores in Drive",
+        "height": 560,
+        "width": 500,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        660,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "c7d2dc0a-db20-447d-bf06-fb0094405a98",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer pplx-key"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('JSON', ``, 'json') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        0
+      ],
+      "id": "c5028998-4f1f-4753-aea2-393fb5e41551",
+      "name": "Perplexity"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Description:  {{ $json.description }}\nSpoken Scirpt:{{ $json.spoken_script }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a visual sequence architect crafting short-form cinematic 16:9 videos for Google Veo3, designed to hook attention instantly on platforms like Instagram Reels and YouTube Shorts. Your job is to convert an abstract idea into a multi-shot visual journey—fast-paced, emotionally driven, and layered with visual symbolism—without using any text or characters.\n\n🎬 Strict Visual Rules:\n❌ No on-screen text — avoid UI, subtitles, signs, overlays, or labels of any kind.\n\n❌ No people speaking or narrating — the video is purely visual.\n\n✅ Instrumental-only audio is allowed — no lyrics, vocals, or spoken words.\n\n✅ Must be in cinematic 16:9 ratio.\n\n✅ Must include at least 3–5 visually distinct scenes, stitched together to convey evolution, contrast, or emotion.\n\n✅ Scenes must be scroll-stopping, high-impact, with varied camera movements (don’t just pan slowly).\n\n✅ Use visual metaphors and symbolic elements to tell the story — think time passing = melting clocks, freedom = birds flying, anxiety = rapidly blinking fluorescent lights.\n\n⏱️ Target video duration: 8–10 seconds — every moment must count.\n\n🔮 Input Format You Will Receive:\njson\nCopy\nEdit\n{\n  \"description\": \"Brief concept idea for the video\",\n  \"spoken_script\": \"Voiceover line user will say under the video (not to be shown)\"\n}\n✨ Your Output Must Be:\nA single rich paragraph (100+ words) that:\n\nDescribes the sequence of scenes (min 3), with transitions or contrast\n\nSpecifies camera movements (e.g., rapid zoom out, handheld glitch, rotating pan)\n\nDefines visual mood (e.g., surreal, dystopian, euphoric)\n\nSpecifies color themes for each scene or transition (e.g., neon-pink haze → grayscale → golden hour)\n\nEmbeds symbolism/metaphors to express emotion\n\nDescribes the environment (e.g., deserted malls, decaying nature, sci-fi corridors)\n\nMentions animation/visual style (e.g., glitch-core, surreal 3D, vintage film grain)\n\nDo NOT include people talking or showing up visibly"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        280,
+        300
+      ],
+      "id": "9daaefde-bb98-4d99-8169-eebf948171f7",
+      "name": "Veo3 Prompt Generator"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        340,
+        -40
+      ],
+      "id": "b1210459-7689-4b8c-a395-cb2ff0cef0d0",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "FQP5N3hJ3oAH06vd",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        480
+      ],
+      "id": "3bf86150-e438-4d17-bee4-076d52d4a049",
+      "name": "OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "FQP5N3hJ3oAH06vd",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -280,
+        500
+      ],
+      "id": "14afc4ec-7455-4865-a69d-7c03c42eccf8",
+      "name": "OpenAI2",
+      "credentials": {
+        "openAiApi": {
+          "id": "FQP5N3hJ3oAH06vd",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        860,
+        0
+      ],
+      "id": "669663fe-ad09-4932-af52-f4b9bcdc36a2",
+      "name": "OpenAI4",
+      "credentials": {
+        "openAiApi": {
+          "id": "FQP5N3hJ3oAH06vd",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Initialize an empty array to hold the formatted strings\nlet formattedPosts = [];\n\n// Iterate over each item (post) in the input data\nfor (let i = 0; i < items.length; i++) {\n  // Extract the desired fields\n  let title = items[i].json.title || '';\n  let selftext = items[i].json.selftext || '';\n  let permalink = items[i].json.permalink || '';\n\n  // Construct the formatted string\n  let formattedPost = `###reddit${i + 1}\\nTitle: ${title}\\nSelftext: ${selftext}\\nLink: https://www.reddit.com${permalink}`;\n\n  // Add the formatted string to the array\n  formattedPosts.push(formattedPost);\n}\n\n// Join all formatted strings into a single output with two newlines separating each post\nlet output = formattedPosts.join('\\n\\n');\n\n// Return the result as a single item\nreturn [{ json: { mergedOutput: output } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        -180
+      ],
+      "id": "8494f7e9-b092-46ee-ace5-d753fdddbffd",
+      "name": "Data Aggregator"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9f8f6dc6-4086-44cb-96ae-7757c3a51705",
+              "name": "Video Ideas",
+              "value": "={{ $json.output[0].video_ideas }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        20,
+        280
+      ],
+      "id": "c882fb0e-bcce-45f4-8c5e-808b51dd34a5",
+      "name": "Set Video Ideas"
+    },
+    {
+      "parameters": {
+        "content": "## Send Data to Sheets ",
+        "height": 560,
+        "width": 200,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1180,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "11ba4c0b-4614-4d7f-be3a-cb28cae11752",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1jlBicAbvp77TCTjAkmj5_RFmWJDaM9lt1DwGKUKogWc",
+          "mode": "list",
+          "cachedResultName": "Viral Reels Ideas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jlBicAbvp77TCTjAkmj5_RFmWJDaM9lt1DwGKUKogWc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 458445839,
+          "mode": "list",
+          "cachedResultName": "Reel Videos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jlBicAbvp77TCTjAkmj5_RFmWJDaM9lt1DwGKUKogWc/edit#gid=458445839"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd') }}",
+            "time": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('HH:mm:ss') }}",
+            "heading": "={{ $('Data Transformation').item.json.heading }}",
+            "idea_summary": "={{ $('Data Transformation').item.json.ideaSummary }}",
+            "video_script_outline": "={{ $('Data Transformation').item.json.hookScript }}-{{ $('Data Transformation').item.json.content1Script }}-{{ $('Data Transformation').item.json.content2Script }}",
+            "format_style": "={{ $('Data Transformation').item.json.formatStyle }}",
+            "viral_trigger": "={{ $('Data Transformation').item.json.viralTrigger }}",
+            "google_trends_opportunity": "={{ $('Data Transformation').item.json.googleTrendsOpportunity }}",
+            "Hook Prompt": "={{ $('Data Transformation').item.json.part_1 }}",
+            "Middle Prompt": "={{ $('Data Transformation').item.json.part_2 }}",
+            "Last Prompt": "={{ $('Data Transformation').item.json.part_3 }}",
+            "call_to_action": "={{ $('Data Transformation').item.json.callToAction }}",
+            "Hook Script": "={{ $('Data Transformation').item.json.hookScript }}",
+            "Middle Script": "={{ $('Data Transformation').item.json.content1Script }}",
+            "Last Script": "={{ $('Data Transformation').item.json.content2Script }}"
+          },
+          "matchingColumns": [
+            "heading"
+          ],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "heading",
+              "displayName": "heading",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "idea_summary",
+              "displayName": "idea_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "video_script_outline",
+              "displayName": "video_script_outline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "format_style",
+              "displayName": "format_style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "viral_trigger",
+              "displayName": "viral_trigger",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "google_trends_opportunity",
+              "displayName": "google_trends_opportunity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "call_to_action",
+              "displayName": "call_to_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hook Prompt",
+              "displayName": "Hook Prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Middle Prompt",
+              "displayName": "Middle Prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Prompt",
+              "displayName": "Last Prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hook Script",
+              "displayName": "Hook Script",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Middle Script",
+              "displayName": "Middle Script",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Script",
+              "displayName": "Last Script",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1240,
+        400
+      ],
+      "id": "f32a565e-664a-4fef-90a8-f2962067b195",
+      "name": "Store Data",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mdCpFUN2LCKinWZE",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger": [
+      {
+        "json": {
+          "timestamp": "2025-07-07T00:00:12.016-04:00",
+          "Readable date": "July 7th 2025, 12:00:12 am",
+          "Readable time": "12:00:12 am",
+          "Day of week": "Monday",
+          "Year": "2025",
+          "Month": "July",
+          "Day of month": "07",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "12",
+          "Timezone": "America/New_York (UTC-04:00)"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Reddit": {
+      "main": [
+        [
+          {
+            "node": "Data Aggregator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Ideas": {
+      "main": [
+        [
+          {
+            "node": "Get Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Trends": {
+      "main": [
+        [
+          {
+            "node": "Make Sense Of Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make Sense Of Ideas": {
+      "main": [
+        [
+          {
+            "node": "Set Video Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Reddit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        []
+      ]
+    },
+    "SerpApi1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Get Trends",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Make Sense Of Ideas",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        []
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Veo3 Prompt Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hook Prompt": {
+      "main": [
+        [
+          {
+            "node": "Hook Video Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Middle Prompt": {
+      "main": [
+        [
+          {
+            "node": "Middle Video Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Last Prompt": {
+      "main": [
+        [
+          {
+            "node": "Last Video Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Transformation": {
+      "main": [
+        [
+          {
+            "node": "Hook Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Middle Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Last Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity": {
+      "ai_tool": [
+        [
+          {
+            "node": "Get Ideas",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veo3 Prompt Generator": {
+      "main": [
+        [
+          {
+            "node": "Data Transformation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Get Ideas",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Veo3 Prompt Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Make Sense Of Ideas",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Get Trends",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Aggregator": {
+      "main": [
+        [
+          {
+            "node": "Get Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Video Ideas": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hook Video Generation": {
+      "main": [
+        [
+          {
+            "node": "Store Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Middle Video Generation": {
+      "main": [
+        [
+          {
+            "node": "Store Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Last Video Generation": {
+      "main": [
+        [
+          {
+            "node": "Store Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "69da690b-daeb-4f19-8ba3-16a1e3dcdfa9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c8c937f62d7bb765a9648f284331bfaaad07a21b568a7b3af86bf65cfd8d8986"
+  },
+  "id": "erdX6nZlujYorAFe",
+  "tags": []
+}
