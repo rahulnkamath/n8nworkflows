@@ -1,0 +1,207 @@
+Generate me prompt for a website need it to be clean neat, it should be a mobile optimized scrollable page which has sections about what Senpai does , picture of the founders , with details and links to linkedin profile. Ask me questions first, and suggest me ideas. it should just be one page, and theme should be purple.
+
+Site is for a general audience to know what we do
+
+Senpai is a set of Agentic AI automations to imrpove businesses  and individual's productiivty + Lead Gen autoamtions done via Clay ., n8n by 2 founders who are passionate about building in public and believe in building and shipping fast.
+
+There is no call to action
+
+Story about founders, "Sivaji first met Rahul at a college fest in 2015. Three years later, fate brought them together again as batchmates at IIM Indore. Five years down the line, they’ve finally teamed up to build something of their own"
+
+We focus on building a community for new learners and pasionat builders . Visual tone, it shuold be coola nd minilimlastic with some images here and there.
+
+Colors are from here
+
+Yea long scroll but not a lot, include a section for each of our 4 pillars
+
+Build
+
+Ship
+
+Community Building
+
+Hackathons
+
+
+
+🎯 SECTION 1: Hero
+
+Gradient Background: Use the uploaded purple → blue gradient.
+
+Content:
+
+
+
+
+vbnet
+
+CopyEdit
+
+Senpai
+
+Agentic AI automations to 10x your productivity.
+
+
+
+
+Clay + n8n + LLMs, combined into plug-and-play automations for founders and teams.
+
+
+
+
+[ Join our Community ] [ Explore What We Do ]
+
+Use two subtle CTAs:
+
+“Join our Community” → link to Telegram/YouTube
+
+“Explore What We Do” → scrolls to next section
+
+⚙️ SECTION 2: What Senpai Does
+
+Title:
+
+"What Senpai Helps You With"
+
+4 Tiles (icons or light illustrations):
+
+
+
+
+Lead Gen Workflows – Automate outreach using Clay + AI.
+
+Productivity Agents – From daily planners to email sorters.
+
+Market Intelligence – Stock summaries, news digests, alerts.
+
+Ecommerce Utilities – Price drop alerts, product tracking, etc.
+
+Subtext:
+
+
+
+
+“Built using Clay, n8n and custom LLM pipelines — adaptable for solo founders, teams, and scaling businesses.”
+
+🧑‍🤝‍🧑 SECTION 3: Founders
+
+Layout:
+
+
+
+
+Photo of founders (side-by-side on desktop, stacked on mobile)
+
+Story:
+
+
+
+
+Sivaji first met Rahul at a college fest in 2015.
+
+
+
+
+Three years later, fate brought them together again as batchmates at IIM Indore.
+
+
+
+
+Five years down the line, they’ve finally teamed up to build tools they wish they had: fast, no-fluff automations for real-world productivity.
+
+Mini-CTA:
+
+
+
+
+If you’re a business looking to streamline lead gen or ops with AI workflows — reach out. We might be a good fit.
+
+
+
+
+[LinkedIn icons below names]
+
+🧱 SECTION 4: Our Pillars
+
+Title:
+
+"How We Work (and Live)"
+
+Grid or vertical cards:
+
+
+
+
+Build. Start now. Don’t over-plan.
+
+Ship. Progress > perfection. Launch > lurk.
+
+Community. Learn together. Teach what you know.
+
+Hackathons. Weekend sprints. Wild ideas. Open doors.
+
+Subtle icons or animated dots here would add flavor.
+
+🧑‍🎓 SECTION 5: Join the Vibe
+
+Text:
+
+
+
+
+Senpai is more than automation — it’s a playground for curious builders.
+
+
+
+
+We share workflows, host events, and build in public.
+
+Watch our builds on YouTube, or join our next community hack sprint.
+
+CTA Buttons:
+
+
+
+
+[ YouTube Channel ]
+
+[ Join Telegram Group ] (or Discord)
+
+🧭 SECTION 6: Footer
+
+Email
+
+LinkedIn
+
+X/Twitter
+
+Light text: “Built in public by builders who ship.”
+
+🧪 Prompt to Generate with AI Website Builders
+
+If you’re using Framer, V0.dev, or similar, you can paste this:
+
+PROMPT:
+
+Design a modern, mobile-optimized one-pager for a project called Senpai, with a purple-to-blue vertical gradient background. The tone is clean, minimalist, and cool. Use large spacing, high contrast typography, and soft animations.
+
+Sections should include:
+
+
+
+Website Prompt:
+
+
+Hero with name “Senpai”, tagline “Agentic AI automations to 10x your productivity.”, and two buttons: “Join Our Community” and “Explore What We Do”.
+
+What Senpai Does: Four cards showing different types of automations — Lead Gen, Productivity, Market Intelligence, Ecommerce Utilities. Subtext: “Built with Clay + n8n + LLMs.”
+
+Founders Section with side-by-side photo layout, story text, and small CTA: “If you’re a business interested in automation, reach out.” Add LinkedIn icons.
+
+Pillars Section: Build, Ship, Community, Hackathons — each with short punchy captions.
+
+Community Section: Copy: “Senpai is more than automation — it’s a playground for curious builders. Join the hackathons, explore the workflows.” Two buttons: “YouTube Channel” and “Join Telegram”.
+
+Footer with links to Email, LinkedIn, Twitter. End note: “Built in public by builders who ship.”
+
+Use playful icons, crisp fonts (like Inter or Satoshi), and keep visual clutter minimal. Mobile-first layout essential.
